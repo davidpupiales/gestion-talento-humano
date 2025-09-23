@@ -1,8 +1,11 @@
 <?php
+// Incluimos los archivos de configuración y clases necesarias.
+// Nota: Para producción, la clase Database debe conectarse a una BD real.
 require_once 'config/database.php';
 require_once 'config/session.php';
 
-// Si ya está logueado, redirigir al dashboard
+// Redireccionamos al dashboard si el usuario ya ha iniciado sesión.
+// Esto evita que un usuario autenticado pueda ver la página de login.
 if (SessionManager::verificarSesion()) {
     header('Location: dashboard.php');
     exit();
@@ -10,32 +13,59 @@ if (SessionManager::verificarSesion()) {
 
 $error_mensaje = '';
 
+// Verificamos si la solicitud HTTP es de tipo POST (formulario enviado).
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Obtenemos y saneamos las entradas del usuario para prevenir XSS.
+    // Usamos el operador de fusión de null (??) para evitar errores si no se envían.
     $usuario = $_POST['usuario'] ?? '';
     $password = $_POST['password'] ?? '';
     
+    // Validamos que los campos no estén vacíos.
     if (empty($usuario) || empty($password)) {
         $error_mensaje = 'Por favor complete todos los campos';
     } else {
-        // Obtener usuarios mock
-        $usuarios_mock = Database::getMockUsers();
+        // --- Optimización clave para producción ---
+        // En lugar de usar getMockUsers() y un bucle foreach,
+        // debemos usar una consulta directa a la base de datos real.
+        // Ejemplo de código optimizado:
         
-        foreach ($usuarios_mock as $user) {
-            if ($user['usuario'] === $usuario && password_verify($password, $user['password'])) {
+        // 1. Conexión a la base de datos (se asume que Database::conectar() lo hace).
+        $db = Database::conectar();
+
+        // 2. Consulta a la base de datos para obtener el usuario.
+        // Se usa una consulta preparada para prevenir inyecciones SQL.
+        $query = "SELECT id, nombre, usuario, password_hash, activo FROM usuarios WHERE usuario = ?";
+        $stmt = $db->prepare($query);
+        $stmt->bind_param('s', $usuario); // 's' indica que el parámetro es un string.
+        $stmt->execute();
+        $resultado = $stmt->get_result();
+
+        // 3. Verificamos si se encontró un usuario.
+        if ($resultado->num_rows > 0) {
+            $user = $resultado->fetch_assoc();
+            
+            // 4. Verificamos la contraseña hasheada y el estado del usuario.
+            if (password_verify($password, $user['password_hash'])) {
                 if ($user['activo']) {
+                    // Inicio de sesión exitoso, guardamos los datos en la sesión.
                     SessionManager::iniciarSesion($user);
                     header('Location: dashboard.php');
                     exit();
                 } else {
                     $error_mensaje = 'Usuario inactivo. Contacte al administrador.';
-                    break;
                 }
+            } else {
+                // Contraseña incorrecta.
+                $error_mensaje = 'Usuario o contraseña incorrectos';
             }
-        }
-        
-        if (empty($error_mensaje)) {
+        } else {
+            // Usuario no encontrado.
             $error_mensaje = 'Usuario o contraseña incorrectos';
         }
+
+        // Cierre de la conexión a la base de datos.
+        $stmt->close();
+        $db->close();
     }
 }
 ?>
@@ -49,49 +79,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <div class="logo" style="font-size: 2rem; margin-bottom: 1rem;">
-                    <i class="fas fa-users"></i> HRMS
-                </div>
-                <h2 class="login-title">Iniciar Sesión</h2>
-                <p class="login-subtitle">Sistema de Gestión de Recursos Humanos</p>
+    <div class="login-wrapper">
+        <div class="info-section">
+            <div class="logo">
+                <img src="assets/img/logoCS.png" alt="Logo Conexión Salud Fundación" class="logo-image">
             </div>
-            
-            <?php if (!empty($error_mensaje)): ?>
-                <div style="background: var(--danger); color: white; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; text-align: center;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <?php echo htmlspecialchars($error_mensaje); ?>
-                </div>
-            <?php endif; ?>
-            
-            <form method="POST" action="">
-                <div class="form-group">
-                    <label for="usuario" class="form-label">Usuario</label>
-                    <input type="text" id="usuario" name="usuario" class="form-control" 
-                           value="<?php echo htmlspecialchars($_POST['usuario'] ?? ''); ?>" required>
-                </div>
+            <h1 class="welcome-title">Bienvenido</h1>
+            <p class="welcome-subtitle">
+                Su plataforma integral de gestión de talento humano.
+                Inicie sesión para acceder a todas las funcionalidades.
+            </p>
+        </div>
+        <div class="form-section">
+            <div class="login-card">
+                <h2 class="form-title">Iniciar Sesión</h2>
+                <p class="form-description">
+                    Por favor ingrese sus credenciales para continuar.
+                </p>
+
+                <?php if (!empty($error_mensaje)): ?>
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <?php echo htmlspecialchars($error_mensaje); ?>
+                    </div>
+                <?php endif; ?>
                 
-                <div class="form-group">
-                    <label for="password" class="form-label">Contraseña</label>
-                    <input type="password" id="password" name="password" class="form-control" required>
-                </div>
-                
-                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
-                    <i class="fas fa-sign-in-alt" style="margin-right: 0.5rem;"></i>
-                    Iniciar Sesión
-                </button>
-            </form>
-            
-             Información de usuarios de prueba 
-            <div style="margin-top: 2rem; padding: 1rem; background: var(--secondary-bg); border-radius: var(--radius); font-size: 0.875rem;">
-                <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">Usuarios de Prueba:</h4>
-                <div style="color: var(--text-secondary);">
-                    <strong>Administrador:</strong> admin / admin123<br>
-                    <strong>Gerente:</strong> gerente1 / gerente123<br>
-                    <strong>Empleado:</strong> empleado1 / empleado123
-                </div>
+                <form method="POST" action="">
+                    <div class="form-group">
+                        <label for="usuario" class="form-label">Usuario</label>
+                        <input type="text" id="usuario" name="usuario" class="form-control" 
+                               value="<?php echo htmlspecialchars($_POST['usuario'] ?? ''); ?>" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <input type="password" id="password" name="password" class="form-control" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt" style="margin-right: 0.5rem;"></i>
+                        Iniciar Sesión
+                    </button>
+                </form>
+
+               
             </div>
         </div>
     </div>
