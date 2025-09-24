@@ -1,9 +1,6 @@
 {
     "name": "PHP & MySQL",
     "image": "mcr.microsoft.com/devcontainers/php:1-8.2-bullseye",
-    "features": {
-        "ghcr.io/devcontainers/features/mysql-client:1": {}
-    },
     "customizations": {
         "vscode": {
             "extensions": [
