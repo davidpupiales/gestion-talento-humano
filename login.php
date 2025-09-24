@@ -1,11 +1,9 @@
 <?php
 // Incluimos los archivos de configuración y clases necesarias.
-// Nota: Para producción, la clase Database debe conectarse a una BD real.
 require_once 'config/database.php';
 require_once 'config/session.php';
 
 // Redireccionamos al dashboard si el usuario ya ha iniciado sesión.
-// Esto evita que un usuario autenticado pueda ver la página de login.
 if (SessionManager::verificarSesion()) {
     header('Location: dashboard.php');
     exit();
@@ -15,8 +13,7 @@ $error_mensaje = '';
 
 // Verificamos si la solicitud HTTP es de tipo POST (formulario enviado).
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Obtenemos y saneamos las entradas del usuario para prevenir XSS.
-    // Usamos el operador de fusión de null (??) para evitar errores si no se envían.
+    // Obtenemos las entradas del usuario.
     $usuario = $_POST['usuario'] ?? '';
     $password = $_POST['password'] ?? '';
     
@@ -24,48 +21,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($usuario) || empty($password)) {
         $error_mensaje = 'Por favor complete todos los campos';
     } else {
-        // --- Optimización clave para producción ---
-        // En lugar de usar getMockUsers() y un bucle foreach,
-        // debemos usar una consulta directa a la base de datos real.
-        // Ejemplo de código optimizado:
+        // Obtenemos la instancia de la base de datos.
+        $db_manager = Database::getInstance();
         
-        // 1. Conexión a la base de datos (se asume que Database::conectar() lo hace).
-        $db = Database::conectar();
+        // Obtenemos el usuario por su nombre de usuario.
+        $user = $db_manager->getUserByUsername($usuario);
 
-        // 2. Consulta a la base de datos para obtener el usuario.
-        // Se usa una consulta preparada para prevenir inyecciones SQL.
-        $query = "SELECT id, nombre, usuario, password_hash, activo FROM usuarios WHERE usuario = ?";
-        $stmt = $db->prepare($query);
-        $stmt->bind_param('s', $usuario); // 's' indica que el parámetro es un string.
-        $stmt->execute();
-        $resultado = $stmt->get_result();
-
-        // 3. Verificamos si se encontró un usuario.
-        if ($resultado->num_rows > 0) {
-            $user = $resultado->fetch_assoc();
-            
-            // 4. Verificamos la contraseña hasheada y el estado del usuario.
-            if (password_verify($password, $user['password_hash'])) {
-                if ($user['activo']) {
-                    // Inicio de sesión exitoso, guardamos los datos en la sesión.
-                    SessionManager::iniciarSesion($user);
-                    header('Location: dashboard.php');
-                    exit();
-                } else {
-                    $error_mensaje = 'Usuario inactivo. Contacte al administrador.';
-                }
+        // Verificamos si se encontró un usuario y si la contraseña es correcta.
+        // La función password_verify es segura para comparar contraseñas hasheadas.
+        if ($user && password_verify($password, $user['password_hash'])) {
+            if ($user['activo']) {
+                // Inicio de sesión exitoso, guardamos los datos en la sesión.
+                SessionManager::iniciarSesion($user);
+                header('Location: dashboard.php');
+                exit();
             } else {
-                // Contraseña incorrecta.
-                $error_mensaje = 'Usuario o contraseña incorrectos';
+                $error_mensaje = 'Usuario inactivo. Contacte al administrador.';
             }
         } else {
-            // Usuario no encontrado.
+            // Usuario no encontrado o contraseña incorrecta.
             $error_mensaje = 'Usuario o contraseña incorrectos';
         }
-
-        // Cierre de la conexión a la base de datos.
-        $stmt->close();
-        $db->close();
     }
 }
 ?>
@@ -121,8 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         Iniciar Sesión
                     </button>
                 </form>
-
-               
             </div>
         </div>
     </div>

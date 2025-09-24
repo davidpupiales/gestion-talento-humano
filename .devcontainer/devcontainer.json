@@ -1,0 +1,32 @@
+{
+    "name": "PHP & MySQL",
+    "image": "mcr.microsoft.com/devcontainers/php:1-8.2-bullseye",
+    "features": {
+        "ghcr.io/devcontainers/features/mysql-client:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.php-debug",
+                "felixfbecker.php-intellisense",
+                "bmewburn.vscode-intelephense-client"
+            ]
+        }
+    },
+    "service": "app",
+    "forwardPorts": [
+        3306,
+        8080
+    ],
+    "portsAttributes": {
+        "8080": {
+            "label": "Web Server",
+            "onAutoForward": "notify"
+        }
+    },
+    "dockerComposeFile": [
+        "docker-compose.yml"
+    ],
+    "postCreateCommand": "composer install",
+    "remoteUser": "root"
+}
