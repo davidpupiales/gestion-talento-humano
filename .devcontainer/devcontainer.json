@@ -1,4 +1,8 @@
 {
+    "features": {
+        "ghcr.io/devcontainers/features/git-lfs:1": {}
+    },
+    
     "name": "PHP & MySQL",
     "image": "mcr.microsoft.com/devcontainers/php:1-8.2-bullseye",
     "customizations": {
@@ -6,7 +10,10 @@
             "extensions": [
                 "ms-vscode.php-debug",
                 "felixfbecker.php-intellisense",
-                "bmewburn.vscode-intelephense-client"
+                "bmewburn.vscode-intelephense-client",
+                "mtxr.sqltools",
+                "mtxr.sqltools-driver-mysql",
+                "formulahendry.code-runner"
             ]
         }
     },
