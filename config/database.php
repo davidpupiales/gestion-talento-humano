@@ -1,6 +1,6 @@
 <?php
 /**
- * Configuración de Base de Datos
+ * Configuración y Conexión a la Base de Datos
  * Sistema de Gestión de Recursos Humanos (HRMS)
  */
 
@@ -16,8 +16,22 @@ class Database {
     private $connection;
     
     private function __construct() {
-        // Por ahora usamos datos mock, pero aquí iría la conexión real
-        // $this->connection = new PDO("mysql:host=".DB_HOST.";port=".DB_PORT.";dbname=".DB_NAME, DB_USER, DB_PASS);
+        try {
+            // Conexión real a la base de datos usando mysqli
+            $this->connection = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
+            
+            // Verificamos si la conexión fue exitosa
+            if ($this->connection->connect_error) {
+                // En un entorno de producción, es mejor registrar este error en un log en lugar de mostrarlo
+                throw new Exception("Error de conexión a la base de datos: " . $this->connection->connect_error);
+            }
+            
+            // Establecemos el charset a UTF-8 para evitar problemas con tildes y caracteres especiales
+            $this->connection->set_charset("utf8mb4");
+
+        } catch (Exception $e) {
+            die("Error Fatal: " . $e->getMessage());
+        }
     }
     
     public static function getInstance() {
@@ -31,71 +45,26 @@ class Database {
         return $this->connection;
     }
     
-    // Datos mock para desarrollo
-    public static function getMockUsers() {
-        return [
-            [
-                'id' => 1,
-                'usuario' => 'admin',
-                'password' => password_hash('admin123', PASSWORD_DEFAULT),
-                'nombre' => 'Administrador Sistema',
-                'email' => 'admin@empresa.com',
-                'rol' => 'administrador',
-                'activo' => 1
-            ],
-            [
-                'id' => 2,
-                'usuario' => 'gerente1',
-                'password' => password_hash('gerente123', PASSWORD_DEFAULT),
-                'nombre' => 'María González',
-                'email' => 'maria.gonzalez@empresa.com',
-                'rol' => 'gerente',
-                'activo' => 1
-            ],
-            [
-                'id' => 3,
-                'usuario' => 'empleado1',
-                'password' => password_hash('empleado123', PASSWORD_DEFAULT),
-                'nombre' => 'Juan Pérez',
-                'email' => 'juan.perez@empresa.com',
-                'rol' => 'empleado',
-                'activo' => 1
-            ]
-        ];
+    /**
+     * Valida un usuario y su contraseña desde la base de datos real.
+     * @param string $usuario
+     * @return array|null Retorna los datos del usuario si las credenciales son válidas, de lo contrario null.
+     */
+    public function getUserByUsername(string $usuario): ?array {
+        // Consulta preparada para prevenir inyecciones SQL
+        $stmt = $this->connection->prepare("SELECT id, usuario, password_hash, activo, rol FROM usuarios WHERE usuario = ?");
+        $stmt->bind_param("s", $usuario); // 's' indica que el parámetro es un string
+        $stmt->execute();
+        $resultado = $stmt->get_result();
+        
+        $user = $resultado->fetch_assoc();
+        
+        $stmt->close();
+        
+        return $user;
     }
     
-    // Datos mock de empleados
-    public static function getMockEmpleados() {
-        return [
-            [
-                'id' => 1,
-                'codigo' => 'EMP001',
-                'nombre' => 'Juan Pérez',
-                'apellido' => 'García',
-                'cedula' => '12345678',
-                'email' => 'juan.perez@empresa.com',
-                'telefono' => '555-0123',
-                'departamento' => 'Desarrollo',
-                'cargo' => 'Desarrollador Senior',
-                'fecha_ingreso' => '2023-01-15',
-                'salario_base' => 50000,
-                'estado' => 'activo'
-            ],
-            [
-                'id' => 2,
-                'codigo' => 'EMP002',
-                'nombre' => 'María González',
-                'apellido' => 'López',
-                'cedula' => '87654321',
-                'email' => 'maria.gonzalez@empresa.com',
-                'telefono' => '555-0124',
-                'departamento' => 'Recursos Humanos',
-                'cargo' => 'Gerente RRHH',
-                'fecha_ingreso' => '2022-03-10',
-                'salario_base' => 75000,
-                'estado' => 'activo'
-            ]
-        ];
-    }
+    // Aquí puedes agregar otros métodos para interactuar con la base de datos
+    // Por ejemplo, para obtener empleados, proyectos, etc.
 }
 ?>
