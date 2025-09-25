@@ -3,6 +3,7 @@
 require_once 'config/database.php';
 require_once 'config/session.php';
 
+
 // Redireccionamos al dashboard si el usuario ya ha iniciado sesión.
 if (SessionManager::verificarSesion()) {
     header('Location: dashboard.php');
@@ -27,8 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Obtenemos el usuario por su nombre de usuario.
         $user = $db_manager->getUserByUsername($usuario);
 
+        // var_dump($user);
+        // die();
+
         // Verificamos si se encontró un usuario y si la contraseña es correcta.
-        // La función password_verify es segura para comparar contraseñas hasheadas.
         if ($user && password_verify($password, $user['password_hash'])) {
             if ($user['activo']) {
                 // Inicio de sesión exitoso, guardamos los datos en la sesión.

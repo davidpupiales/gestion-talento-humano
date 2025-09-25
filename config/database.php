@@ -9,7 +9,7 @@ define('DB_HOST', 'localhost');
 define('DB_PORT', '3306');
 define('DB_NAME', 'hrms_system');
 define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_PASS', '123456789');
 
 class Database {
     private static $instance = null;
@@ -20,9 +20,9 @@ class Database {
             // Conexión real a la base de datos usando mysqli
             $this->connection = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
             
+
             // Verificamos si la conexión fue exitosa
             if ($this->connection->connect_error) {
-                // En un entorno de producción, es mejor registrar este error en un log en lugar de mostrarlo
                 throw new Exception("Error de conexión a la base de datos: " . $this->connection->connect_error);
             }
             
@@ -53,7 +53,7 @@ class Database {
     public function getUserByUsername(string $usuario): ?array {
         // Consulta preparada para prevenir inyecciones SQL
         $stmt = $this->connection->prepare("SELECT id, usuario, password_hash, activo, rol FROM usuarios WHERE usuario = ?");
-        $stmt->bind_param("s", $usuario); // 's' indica que el parámetro es un string
+        $stmt->bind_param("s", $usuario);
         $stmt->execute();
         $resultado = $stmt->get_result();
         
@@ -63,8 +63,5 @@ class Database {
         
         return $user;
     }
-    
-    // Aquí puedes agregar otros métodos para interactuar con la base de datos
-    // Por ejemplo, para obtener empleados, proyectos, etc.
 }
 ?>
