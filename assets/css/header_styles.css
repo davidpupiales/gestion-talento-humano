@@ -1,0 +1,112 @@
+/* ========================================= */
+/* ===== ESTILOS PARA NOTIFICACIONES ===== */
+/* ========================================= */
+
+.notifications-panel {
+    position: relative;
+    cursor: pointer;
+}
+
+/* Estilos para el botón que activa las notificaciones */
+.notification-trigger {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: color 0.2s ease-in-out;
+}
+
+.notification-trigger:hover {
+    color: var(--accent-blue);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: var(--accent-red);
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 9999px;
+    font-weight: 600;
+}
+
+/* Estilos para el menú desplegable */
+.notifications-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 10px;
+    width: 300px;
+    /* Ancho del menú */
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    z-index: 1000;
+    transform: translateY(-10px);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+}
+
+/* Estado activo: se muestra el menú */
+.notifications-panel.active .notifications-dropdown {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.notifications-dropdown::-webkit-scrollbar {
+    width: 4px;
+}
+
+.notifications-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.notifications-dropdown::-webkit-scrollbar-thumb {
+    background: var(--border-secondary);
+    border-radius: var(--radius-full);
+}
+
+.notification-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-primary);
+    transition: background-color 0.2s ease-in-out;
+}
+
+.notification-item:hover {
+    background: var(--bg-surface);
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.notification-icon {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.notification-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+}
+
+.notification-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}

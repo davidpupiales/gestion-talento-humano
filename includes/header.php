@@ -1,13 +1,25 @@
 <?php
+/**
+ * header.php
+ * Este archivo contiene la estructura principal de la página,
+ * incluyendo el DOCTYPE, <head>, y la estructura del layout (sidebar y header).
+ *
+ * No contiene las etiquetas de cierre </body> y </html>,
+ * que se encuentran en el archivo footer.php.
+ *
+ */
+
+// Incluimos los archivos de configuración y clases necesarias.
 require_once 'config/session.php';
 require_once 'config/database.php';
 
-// Verificar si el usuario está logueado
+// Verificamos si el usuario está logueado. Si no, lo redirigimos a la página de login.
 if (!SessionManager::verificarSesion()) {
     header('Location: login.php');
     exit();
 }
 
+// Obtenemos los datos del usuario de la sesión para mostrarlos en el header.
 $usuario_actual = SessionManager::obtenerUsuario();
 ?>
 <!DOCTYPE html>
@@ -17,6 +29,7 @@ $usuario_actual = SessionManager::obtenerUsuario();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HRMS - Sistema de Gestión de Recursos Humanos</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/header_styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,12 +37,10 @@ $usuario_actual = SessionManager::obtenerUsuario();
 </head>
 <body>
     <div class="main-container">
-        <!-- Mejorando estructura del sidebar con secciones organizadas -->
-        <!-- Sidebar -->
         <nav class="sidebar">
             <div class="sidebar-logo">
                 <div class="logo">
-                    <i class="fas fa-users"></i> HRMS
+                    <i class="fas fa-users-cog"></i> HRMS
                 </div>
                 <div class="logo-subtitle">Recursos Humanos</div>
             </div>
@@ -40,13 +51,12 @@ $usuario_actual = SessionManager::obtenerUsuario();
                     <ul>
                         <li class="nav-item">
                             <a href="dashboard.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>">
-                                <i class="fas fa-chart-dashboard nav-icon"></i>
+                                <i class="fas fa-chart-line nav-icon"></i>
                                 Dashboard
                             </a>
                         </li>
                     </ul>
                 </li>
-
                 <li class="nav-section">
                     <div class="nav-section-title">Gestión</div>
                     <ul>
@@ -61,7 +71,7 @@ $usuario_actual = SessionManager::obtenerUsuario();
                         
                         <li class="nav-item">
                             <a href="nomina.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'nomina.php' ? 'active' : ''; ?>">
-                                <i class="fas fa-money-bill nav-icon"></i>
+                                <i class="fas fa-money-bill-wave nav-icon"></i>
                                 Nómina
                             </a>
                         </li>
@@ -83,7 +93,6 @@ $usuario_actual = SessionManager::obtenerUsuario();
                         </li>
                     </ul>
                 </li>
-
                 <li class="nav-section">
                     <div class="nav-section-title">Servicios</div>
                     <ul>
@@ -109,7 +118,6 @@ $usuario_actual = SessionManager::obtenerUsuario();
                         </li>
                     </ul>
                 </li>
-
                 <?php if (SessionManager::tienePermiso('gerente')): ?>
                 <li class="nav-section">
                     <div class="nav-section-title">Análisis</div>
@@ -123,7 +131,6 @@ $usuario_actual = SessionManager::obtenerUsuario();
                     </ul>
                 </li>
                 <?php endif; ?>
-
                 <li class="nav-section">
                     <div class="nav-section-title">Usuario</div>
                     <ul>
@@ -138,17 +145,14 @@ $usuario_actual = SessionManager::obtenerUsuario();
             </ul>
         </nav>
         
-        <!-- Contenido Principal -->
         <main class="content">
-            <!-- Mejorando header con sistema de notificaciones completo -->
-            <!-- Header -->
             <header class="header">
                 <div class="header-title">
                     <i class="fas fa-<?php
                         $iconos = [
-                            'dashboard.php' => 'chart-dashboard',
+                            'dashboard.php' => 'chart-line',
                             'empleados.php' => 'users',
-                            'nomina.php' => 'money-bill',
+                            'nomina.php' => 'money-bill-wave',
                             'reclutamiento.php' => 'user-plus',
                             'capacitacion.php' => 'graduation-cap',
                             'permisos.php' => 'calendar-alt',
@@ -177,7 +181,6 @@ $usuario_actual = SessionManager::obtenerUsuario();
                 </div>
                 
                 <div class="header-actions">
-                    <!-- Sistema de notificaciones mejorado -->
                     <div class="notifications-panel">
                         <button class="notification-trigger">
                             <i class="fas fa-bell"></i>
@@ -186,59 +189,49 @@ $usuario_actual = SessionManager::obtenerUsuario();
                         
                         <div class="notifications-dropdown">
                             <div class="notification-item unread">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 8px; height: 8px; background: var(--accent-blue); border-radius: 50%;"></div>
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: 600; margin-bottom: 4px;">Nuevo documento para firmar</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">Política de Seguridad - Hace 2 horas</div>
+                                <div class="notification-content">
+                                    <div class="notification-icon" style="background: var(--accent-blue);"></div>
+                                    <div>
+                                        <div class="notification-title">Nuevo documento para firmar</div>
+                                        <div class="notification-meta">Política de Seguridad - Hace 2 horas</div>
                                     </div>
                                 </div>
                             </div>
                             <div class="notification-item unread">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%;"></div>
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: 600; margin-bottom: 4px;">Permiso aprobado</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">Vacaciones del 20-25 Feb - Hace 4 horas</div>
+                                <div class="notification-content">
+                                    <div class="notification-icon" style="background: var(--accent-green);"></div>
+                                    <div>
+                                        <div class="notification-title">Permiso aprobado</div>
+                                        <div class="notification-meta">Vacaciones del 20-25 Feb - Hace 4 horas</div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="notification-item unread">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 8px; height: 8px; background: var(--accent-orange); border-radius: 50%;"></div>
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: 600; margin-bottom: 4px;">Capacitación programada</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">Seguridad Laboral - Mañana 9:00 AM</div>
+                            <div class="notification-item">
+                                <div class="notification-content">
+                                    <div class="notification-icon" style="background: var(--accent-orange);"></div>
+                                    <div>
+                                        <div class="notification-title">Capacitación programada</div>
+                                        <div class="notification-meta">Seguridad Laboral - Mañana 9:00 AM</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Información del usuario -->
                     <div class="user-menu">
-                        <span><?php echo htmlspecialchars($usuario_actual['nombre']); ?></span>
+                        <span class="user-name"><?php echo htmlspecialchars($usuario_actual['nombre']); ?></span>
                         <div class="user-avatar">
                             <?php echo strtoupper(substr($usuario_actual['nombre'], 0, 1)); ?>
                         </div>
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">
+                        <span class="user-role">
                             <?php echo ucfirst($usuario_actual['rol']); ?>
                         </span>
                     </div>
                     
-                    <!-- Logout -->
                     <a href="logout.php" class="btn btn-secondary" title="Cerrar Sesión">
                         <i class="fas fa-sign-out-alt"></i>
                     </a>
                 </div>
             </header>
 
-            <!-- Agregando contenedor para el contenido de las páginas -->
-            <!-- Contenido de la página -->
             <div class="page-container">
-                <!-- Rest of code here -->
-            </div>
-        </main>
-    </div>
-</body>
-</html>
