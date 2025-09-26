@@ -7,69 +7,32 @@ if (!SessionManager::tienePermiso('gerente')) {
     exit();
 }
 
-// Datos mock de empleados
-// En futuras etapas, esta función se conectará a la base de datos real.
-function getMockEmpleados() {
-    return [
-        [
-            'id' => 1,
-            'codigo' => 'EMP001',
-            'nombre' => 'Juan',
-            'apellido' => 'Pérez',
-            'cedula' => '12345678',
-            'email' => 'juan.perez@empresa.com',
-            'telefono' => '555-0123',
-            'departamento' => 'Desarrollo',
-            'cargo' => 'Desarrollador Senior',
-            'fecha_ingreso' => '2023-01-15',
-            'salario_base' => 50000,
-            'estado' => 'activo'
-        ],
-        [
-            'id' => 2,
-            'codigo' => 'EMP002',
-            'nombre' => 'María',
-            'apellido' => 'González',
-            'cedula' => '87654321',
-            'email' => 'maria.gonzalez@empresa.com',
-            'telefono' => '555-0124',
-            'departamento' => 'Recursos Humanos',
-            'cargo' => 'Gerente de RRHH',
-            'fecha_ingreso' => '2022-05-10',
-            'salario_base' => 60000,
-            'estado' => 'activo'
-        ],
-        [
-            'id' => 3,
-            'codigo' => 'EMP003',
-            'nombre' => 'Carlos',
-            'apellido' => 'Rodríguez',
-            'cedula' => '11223344',
-            'email' => 'carlos.rodriguez@empresa.com',
-            'telefono' => '555-0125',
-            'departamento' => 'Ventas',
-            'cargo' => 'Ejecutivo de Ventas',
-            'fecha_ingreso' => '2023-06-20',
-            'salario_base' => 35000,
-            'estado' => 'activo'
-        ],
-        [
-            'id' => 4,
-            'codigo' => 'EMP004',
-            'nombre' => 'Ana',
-            'apellido' => 'Martínez',
-            'cedula' => '55667788',
-            'email' => 'ana.martinez@empresa.com',
-            'telefono' => '555-0126',
-            'departamento' => 'Marketing',
-            'cargo' => 'Especialista en Marketing',
-            'fecha_ingreso' => '2023-09-10',
-            'salario_base' => 40000,
-            'estado' => 'activo'
-        ]
-    ];
-}
-$empleados = getMockEmpleados();
+// =========================================================================
+// INICIO: Bloque de Conexión a Base de Datos (a ser implementado)
+// =========================================================================
+
+/**
+ * En esta etapa, el desarrollador deberá:
+ * 1. Incluir la conexión a la base de datos (e.g., 'includes/db_connection.php').
+ * 2. Implementar una función o lógica para consultar la tabla de empleados
+ * y almacenar el resultado en la variable $empleados.
+ *
+ * Ejemplo de lo que se podría reemplazar:
+ * require_once 'includes/Db.php';
+ * $db = new Db();
+ * $empleados = $db->query("SELECT * FROM empleados WHERE estado != 'eliminado' ORDER BY apellido, nombre");
+ */
+
+// *************************************************************************
+// NOTA: Temporalmente, para evitar errores mientras se implementa la DB,
+// se inicializa la variable como un array vacío.
+// *************************************************************************
+$empleados = []; 
+
+// =========================================================================
+// FIN: Bloque de Conexión a Base de Datos
+// =========================================================================
+
 ?>
 <link rel="stylesheet" href="assets/css/empleados.css">
 
@@ -105,17 +68,17 @@ $empleados = getMockEmpleados();
             <div class="metric-icon"><i class="fas fa-users"></i></div>
         </div>
         <div class="metric-card success">
-            <div class="metric-value">4</div>
+            <div class="metric-value">0</div> 
             <div class="metric-label">Departamentos</div>
             <div class="metric-icon"><i class="fas fa-building"></i></div>
         </div>
         <div class="metric-card warning">
-            <div class="metric-value">100%</div>
+             <div class="metric-value">0%</div> 
             <div class="metric-label">Empleados Activos</div>
             <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
         </div>
         <div class="metric-card danger">
-            <div class="metric-value">2</div>
+             <div class="metric-value">0</div> 
             <div class="metric-label">Nuevos Este Mes</div>
             <div class="metric-icon"><i class="fas fa-user-plus"></i></div>
         </div>
@@ -147,7 +110,10 @@ $empleados = getMockEmpleados();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($empleados as $empleado): ?>
+                    <?php 
+                    // El bucle sigue intacto y funcionará cuando $empleados contenga datos de la DB
+                    foreach ($empleados as $empleado): 
+                    ?>
                     <tr>
                         <td>
                             <span class="badge badge-info">
@@ -201,6 +167,9 @@ $empleados = getMockEmpleados();
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            <?php if (empty($empleados)): ?>
+            <div class="text-center p-3 text-muted">No hay empleados registrados en el sistema.</div>
+            <?php endif; ?>
         </div>
         
         <div class="employee-list d-block d-lg-none">
@@ -252,10 +221,20 @@ $empleados = getMockEmpleados();
                 </div>
             </div>
             <?php endforeach; ?>
+             <?php if (empty($empleados)): ?>
+             <div class="text-center p-3 text-muted">No hay empleados registrados en el sistema.</div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
+
+    
+
+
+
+
+<!-- formulario de nuevo usuario -->
 <div id="modal-empleado" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
@@ -264,36 +243,50 @@ $empleados = getMockEmpleados();
                 <i class="fas fa-times"></i>
             </button>
         </div>
+        
         <div class="modal-body">
             <form id="form-empleado">
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Nombre</label>
-                        <input type="text" id="empleado-nombre" class="form-control" required>
+                        <label class="form-label" for="empleado-nombre">Nombre</label>
+                        <input type="text" id="empleado-nombre" class="form-control" name="nombre" required 
+                               placeholder="Ej: Andrés" maxlength="50">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Apellido</label>
-                        <input type="text" id="empleado-apellido" class="form-control" required>
+                        <label class="form-label" for="empleado-apellido">Apellido</label>
+                         <input type="text" id="empleado-apellido" class="form-control" name="apellido" required 
+                               placeholder="Ej: Bello" maxlength="50">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="empleado-cedula">Cédula / Identificación</label>
+                        <input type="text" id="empleado-cedula" class="form-control" name="cedula" required 
+                               pattern="[0-9]{6,15}" title="Solo números, entre 6 y 15 dígitos." 
+                               placeholder="Ej: 12345678">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empleado-ciudad">Ciudad de Residencia</label>
+                         <input type="text" id="empleado-ciudad" class="form-control" name="ciudad" required 
+                               placeholder="Ej: Caracas">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="empleado-email">Email</label>
+                        <input type="email" id="empleado-email" class="form-control" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empleado-telefono">Teléfono</label>
+                        <input type="text" id="empleado-telefono" class="form-control" name="telefono">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Cédula</label>
-                        <input type="text" id="empleado-cedula" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" id="empleado-email" class="form-control" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Teléfono</label>
-                        <input type="text" id="empleado-telefono" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Departamento</label>
-                        <select id="empleado-departamento" class="form-control" required>
+                        <label class="form-label" for="empleado-departamento">Departamento</label>
+                        <select id="empleado-departamento" class="form-control" name="departamento" required>
                             <option value="">Seleccionar...</option>
                             <option value="Desarrollo">Desarrollo</option>
                             <option value="Recursos Humanos">Recursos Humanos</option>
@@ -301,33 +294,41 @@ $empleados = getMockEmpleados();
                             <option value="Marketing">Marketing</option>
                         </select>
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Cargo</label>
-                        <input type="text" id="empleado-cargo" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Fecha de Ingreso</label>
-                        <input type="date" id="empleado-fecha-ingreso" class="form-control" required>
+                        <label class="form-label" for="empleado-cargo">Cargo</label>
+                        <input type="text" id="empleado-cargo" class="form-control" name="cargo" required>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Salario Base</label>
-                        <input type="number" id="empleado-salario" class="form-control" step="0.01">
+                        <label class="form-label" for="empleado-fecha-ingreso">Fecha de Ingreso</label>
+                        <input type="date" id="empleado-fecha-ingreso" class="form-control" name="fecha_ingreso" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Estado</label>
-                        <select id="empleado-estado" class="form-control">
+                        <label class="form-label" for="empleado-salario">Salario Base</label>
+                        <input type="number" id="empleado-salario" class="form-control" name="salario_base" step="0.01">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="empleado-estado">Estado</label>
+                        <select id="empleado-estado" class="form-control" name="estado">
                             <option value="activo">Activo</option>
                             <option value="inactivo">Inactivo</option>
                             <option value="suspendido">Suspendido</option>
                         </select>
                     </div>
                 </div>
+                <input type="hidden" id="empleado-id" name="id"> 
             </form>
         </div>
+
+
+
+        
+    
+<!-- fin del formulario -->
+       
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="cerrarModalEmpleado()">
                 Cancelar
