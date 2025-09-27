@@ -7,7 +7,7 @@
 // Configuración de la base de datos
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3306');
-define('DB_NAME', 'hrms_system');
+define('DB_NAME', 'hrms_system2');
 define('DB_USER', 'root');
 define('DB_PASS', '123456789');
 
