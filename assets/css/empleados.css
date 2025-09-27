@@ -1,265 +1,360 @@
-/* Estilos para el diseño responsivo de la sección de Empleados */
+/* =============================================== */
+/* ESTILOS GENERALES Y LAYOUT BASE */
+/* =============================================== */
 
-/* Ocultar elementos en móviles para la tabla de escritorio */
-.d-none.d-lg-block {
-    display: none !important;
+/* -- Variables de Color (Asumo que tienes un archivo de variables global) -- */
+:root {
+    --primary-color: #007bff;
+    /* Azul vibrante */
+    --secondary-color: #6c757d;
+    /* Gris para botones secundarios */
+    --background-light: #f4f7f6;
+    /* Fondo de la página */
+    --surface-color: #ffffff;
+    /* Fondo de tarjetas y modales */
+    --border-color: #e0e4e8;
+    /* Borde suave */
+    --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.05);
+    /* Sombra suave */
+    --text-color: #343a40;
+    /* Texto principal oscuro */
+    --text-color-light: #6c757d;
+    /* Texto secundario/etiquetas */
+    --success-color: #28a745;
 }
 
-/* Ocultar elementos en escritorio para la lista de tarjetas de móvil */
-.d-block.d-lg-none {
-    display: block !important;
+body {
+    background-color: var(--background-light);
+    color: var(--text-color);
 }
 
-@media (min-width: 992px) {
+/* =============================================== */
+/* ESTILOS DEL MODAL (Overlay, Contenido) */
+/* =============================================== */
 
-    /* Mostrar la tabla en pantallas grandes */
-    .d-none.d-lg-block {
-        display: block !important;
-    }
-
-    /* Ocultar las tarjetas en pantallas grandes */
-    .d-block.d-lg-none {
-        display: none !important;
-    }
-}
-
-.page-header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1.5rem;
-    /* Espaciado entre elementos */
-    margin-bottom: 1.5rem;
-}
-
-.page-actions,
-.page-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.search-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.search-box .fas {
-    position: absolute;
-    left: 0.75rem;
-    color: #a0aec0;
-}
-
-.search-box .form-control {
-    padding-left: 2.25rem;
-}
-
-/* Estilos para las métricas */
-.metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.metric-card {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 1.5rem;
-    background-color: var(--card-bg);
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Estilos de tabla responsiva (para móviles) */
-.employee-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.employee-card {
-    background-color: var(--card-bg);
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 1.5rem;
-}
-
-.card-header-mobile {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.user-avatar-mobile {
-    width: 4rem;
-    height: 4rem;
-    border-radius: 50%;
-    background-color: var(--primary-color-light);
-    color: var(--primary-color);
-    font-size: 1.5rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-.employee-name {
-    margin: 0;
-    font-size: 1.25rem;
-}
-
-.employee-meta {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.card-body-mobile {
-    margin-bottom: 1rem;
-    border-top: 1px solid var(--border-color);
-    padding-top: 1rem;
-}
-
-.details-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.details-item:last-child {
-    border-bottom: none;
-}
-
-.card-footer-mobile {
-    border-top: 1px solid var(--border-color);
-    padding-top: 1rem;
-}
-
-/* Estilos para el Modal */
 .modal-overlay {
-    /* Oculto por defecto */
+    /* Mantener la visibilidad y centrado */
     display: none;
+    /* Controlado por JS */
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    justify-content: center;
-    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
-}
-
-.modal-overlay.show {
-    /* Muestra el modal */
-    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content {
-    background-color: var(--card-bg);
-    border-radius: 0.75rem;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    max-width: 90%;
-    width: 600px;
-    padding: 1.5rem;
-    transform: scale(0.95);
-    opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
+    background-color: var(--surface-color);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1200px;
+    /* Ancho cómodo para formularios grandes */
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    /* Sombra más pronunciada */
+    display: flex;
+    flex-direction: column;
 }
 
-.modal-overlay.show .modal-content {
-    transform: scale(1);
-    opacity: 1;
-}
+/* =============================================== */
+/* ESTILOS DEL ENCABEZADO DEL MODAL (modal-header) */
+/* =============================================== */
 
 .modal-header {
+    background-color: var(--surface-color);
+    /* Fondo blanco limpio */
+    padding: 1.5rem 2rem;
+    /* Usamos un borde inferior más pronunciado o una sombra ligera si lo prefieres */
+    border-bottom: 1px solid var(--border-color);
+
+    /* CRÍTICO: Alineación para separar el título del botón de cierre */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 1rem;
-    margin-bottom: 1rem;
+    flex-shrink: 0;
+
+    /* Estilo del título */
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: navy;
 }
 
-.modal-header h3 {
-    margin: 0;
-}
+/* =============================================== */
+/* ESTILOS DEL BOTÓN DE CIERRE (Icono X) */
+/* =============================================== */
 
 .modal-close {
-    background: none;
+    /* Base */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+
+    /* Estilo Moderno */
+    background-color: transparent;
     border: none;
-    font-size: 1.5rem;
+    border-radius: 50%;
+    /* Lo hace circular */
+    font-size: 1.1rem;
     color: var(--text-color-light);
+    /* Color gris sutil */
     cursor: pointer;
-    transition: color 0.2s;
+    transition: all 0.3s ease;
 }
 
 .modal-close:hover {
-    color: var(--danger-color);
+    background-color: var(--border-color);
+    /* Fondo gris claro al pasar el mouse */
+    color: #dc3545;
+    /* Icono rojo sutil para indicar peligro/cierre */
 }
 
-.modal-body {
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+/* Si tu ícono es solo el <i>, usa esto para asegurarte que no se vea cortado */
+.modal-close i {
+    line-height: 1;
+}
+
+.modal-header,
+.modal-footer {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    /* Evita que el header/footer se encoja */
 }
 
 .modal-footer {
-    display: flex;
+    border-top: 1px solid var(--border-color);
+    border-bottom: none;
     justify-content: flex-end;
     gap: 1rem;
-    border-top: 1px solid var(--border-color);
-    padding-top: 1rem;
-    margin-top: 1rem;
 }
 
-/* Estilos para el formulario dentro del modal */
-.form-row {
+.modal-body {
+    padding: 1.5rem 2rem;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* =============================================== */
+/* ESTILOS DE PESTAÑAS (TABS) MODERNOS */
+/* =============================================== */
+
+.tab-header {
+    /* ANTES: .tab-navigation */
     display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    justify-content: flex-start;
+    /* ... (resto del estilo Píldora) ... */
+    margin-bottom: 1.5rem;
+    /* Reemplazamos la función de mb-lg aquí */
+    padding: 0.5rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
-
-.form-group {
-    flex: 1;
-    min-width: 250px;
+.tab-button {
+    /* Mantenemos el estilo de botón base */
+        background: none;
+        border: none;
+        padding: 0.6rem 1.1rem;
+        cursor: pointer;
+        font-size: 0.95rem;
+        /* Fuente ligeramente más pequeña */
+        font-weight: 600;
+        color: var(--text-color-light);
+        border-radius: 8px;
+        /* Bordes redondeados (píldora) */
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    
+        /* Reiniciamos los estilos de la versión anterior */
+        border-bottom: none;
+        margin-right: 0;
 }
 
-.form-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
+.tab-button:hover {
+    color: var(--text-color);
+    background-color: var(--border-color);
+        /* Color de fondo sutil al pasar el mouse */
+}
+
+.tab-button.active {
+    color: var(--surface-color);
+    /* Texto blanco o claro */
+    background-color: var(--primary-color);
+    /* Fondo del color principal */
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+    /* Sombra para resaltar */
+}
+
+/* Ocultar el contenido de las pestañas no activas (JS lo maneja con display: none/grid) */
+.tab-content {
+    display: none;
+    /* Usamos GRID para un layout flexible de formulario */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem 1.5rem;
+    /* Espaciado moderno entre filas y columnas */
+}
+
+
+/* =============================================== */
+/* ESTILOS DE FORMULARIO E INPUTS */
+/* =============================================== */
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-color-light);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .form-control {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     border: 1px solid var(--border-color);
-    background-color: var(--input-bg);
+    border-radius: 8px;
+    /* Bordes redondeados sutiles */
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-color: var(--surface-color);
     color: var(--text-color);
-    border-radius: 0.5rem;
-    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.form-control:focus {
+    border-color: var(--primary-color);
+
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.25);
+    /* Anillo de enfoque suave */
+    outline: none;
+}
+
+.form-control select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.25); 
+    outline: none;
+}
+/* Estilos específicos para inputs readonly (cálculos) */
+.form-control[readonly] {
+    background-color: var(--background-light);
+    /* Un gris claro para distinguirlos */
+    font-weight: 600;
+    cursor: not-allowed;
+    color: var(--text-color);
+    /* Asegura que el texto sea visible */
+}
+
+/* Estilos de botones (Mantener si ya usas un framework, sino definir aquí) */
 .btn {
     padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    border: none;
+    border-radius: 8px;
+    font-weight: 700;
     cursor: pointer;
-    font-weight: 600;
     transition: background-color 0.2s, transform 0.1s;
 }
 
 .btn-primary {
     background-color: var(--primary-color);
     color: white;
+    border: 1px solid var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+    border: 1px solid var(--secondary-color);
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Estilos de búsqueda y filtro */
+.search-box .form-control {
+    padding-left: 2.5rem;
+}
+
+.search-box .fas {
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* =============================================== */
+/* RESPONSIVE DESIGN (Ajuste de columnas) */
+/* =============================================== */
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 20px 0;
+    }
+
+    .modal-header,
+    .modal-footer,
+    .modal-body {
+        padding: 1rem 1.25rem;
+    }
+
+    .tab-content {
+        grid-template-columns: 1fr;
+        /* Una sola columna en móvil */
+        gap: 1.5rem;
+    }
+}
+
+/* Agrega el resto de tus estilos de lista de empleados si no están incluidos */
+/* ... */
+
+/* =============================================== */
+/* SOLUCIÓN FINAL: ANULAR FONDO OSCURO EN :FOCUS */
+/* Esta regla va al final de empleados.css para máxima prioridad. */
+/* =============================================== */
+
+/* Selector que apunta a TODOS los inputs, selects y textareas al recibir foco */
+#modal-empleado :is(.form-control,
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select,
+    textarea):focus {
+
+    /* CRÍTICO 1: Eliminar el fondo oscuro. Forzamos un fondo blanco/claro. */
+    background-color: var(--surface-color) !important;
+
+    /* 2. (Mantenemos la corrección del borde y sombra para un look moderno) */
+    outline: 0 !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.45) !important;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Si el problema ocurre solo en Chrome/Edge al hacer clic, puede que sea el estado :active */
+#modal-empleado :is(.form-control,
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select,
+    textarea):active {
+    background-color: var(--surface-color) !important;
 }

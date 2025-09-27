@@ -1,6 +1,6 @@
 <?php
 require_once 'includes/header.php';
-
+require_once 'functions/utils.php';
 // Verificar permisos
 if (!SessionManager::tienePermiso('gerente')) {
     header('Location: dashboard.php');
@@ -245,82 +245,258 @@ $empleados = [];
         </div>
         
         <div class="modal-body">
-            <form id="form-empleado">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-nombre">Nombre</label>
-                        <input type="text" id="empleado-nombre" class="form-control" name="nombre" required 
-                               placeholder="Ej: Andrés" maxlength="50">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-apellido">Apellido</label>
-                         <input type="text" id="empleado-apellido" class="form-control" name="apellido" required 
-                               placeholder="Ej: Bello" maxlength="50">
-                    </div>
+                <form id="form-nuevo-empleado" method="POST" action="functions/empleados.php">
+            
+                <div class="tab-header mb-lg">
+                    <button type="button" class="tab-button active" data-tab="laboral">INFORMACIÓN LABORAL</button>
+                    <button type="button" class="tab-button" data-tab="pagos">INFORMACIÓN PAGOS</button>
+                    <button type="button" class="tab-button" data-tab="aportes">INFORMACIÓN APORTES</button>
+                    <button type="button" class="tab-button" data-tab="cursos">VIGENCIA DE CURSOS</button>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-cedula">Cédula / Identificación</label>
-                        <input type="text" id="empleado-cedula" class="form-control" name="cedula" required 
-                               pattern="[0-9]{6,15}" title="Solo números, entre 6 y 15 dígitos." 
-                               placeholder="Ej: 12345678">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-ciudad">Ciudad de Residencia</label>
-                         <input type="text" id="empleado-ciudad" class="form-control" name="ciudad" required 
-                               placeholder="Ej: Caracas">
-                    </div>
+            <div id="tab-laboral" class="tab-content active grid-3">
+                <div class="form-group">
+                    <label>SEDE</label>
+                    <input type="text" name="sede" class="form-control" required>
                 </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-email">Email</label>
-                        <input type="email" id="empleado-email" class="form-control" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-telefono">Teléfono</label>
-                        <input type="text" id="empleado-telefono" class="form-control" name="telefono">
-                    </div>
+                <div class="form-group">
+                    <label>CARGO</label>
+                    <select name="cargo" class="form-control" required>
+                        <option value="">Seleccione un cargo...</option>
+                        <?php foreach (getCargoOptions() as $c): ?>
+                            <option value="<?php echo htmlspecialchars($c); ?>"><?php echo htmlspecialchars($c); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-departamento">Departamento</label>
-                        <select id="empleado-departamento" class="form-control" name="departamento" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="Desarrollo">Desarrollo</option>
-                            <option value="Recursos Humanos">Recursos Humanos</option>
-                            <option value="Ventas">Ventas</option>
-                            <option value="Marketing">Marketing</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-cargo">Cargo</label>
-                        <input type="text" id="empleado-cargo" class="form-control" name="cargo" required>
-                    </div>
+                <div class="form-group">
+                    <label>NIVEL</label>
+                    <select name="nivel" class="form-control">
+                        <option value="">Seleccione un nivel...</option>
+                        <?php foreach (getNivelOptions() as $n): ?>
+                            <option value="<?php echo htmlspecialchars($n); ?>"><?php echo htmlspecialchars($n); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-fecha-ingreso">Fecha de Ingreso</label>
-                        <input type="date" id="empleado-fecha-ingreso" class="form-control" name="fecha_ingreso" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-salario">Salario Base</label>
-                        <input type="number" id="empleado-salario" class="form-control" name="salario_base" step="0.01">
-                    </div>
+                <div class="form-group">
+                    <label>CALIDAD</label>
+                    <select name="calidad" class="form-control">
+                        <option value="">Seleccione la calidad...</option>
+                        <?php foreach (getCalidadOptions() as $c): ?>
+                            <option value="<?php echo htmlspecialchars($c); ?>"><?php echo htmlspecialchars($c); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="empleado-estado">Estado</label>
-                        <select id="empleado-estado" class="form-control" name="estado">
-                            <option value="activo">Activo</option>
-                            <option value="inactivo">Inactivo</option>
-                            <option value="suspendido">Suspendido</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label>PROGRAMA</label>
+                    <select name="programa" class="form-control">
+                        <option value="">Seleccione un programa...</option>
+                        <?php foreach (getProgramaOptions() as $p): ?>
+                            <option value="<?php echo htmlspecialchars($p); ?>"><?php echo htmlspecialchars($p); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-                <input type="hidden" id="empleado-id" name="id"> 
-            </form>
+                <div class="form-group">
+                    <label>ÁREA</label>
+                    <select name="area" class="form-control">
+                        <option value="">Seleccione un área...</option>
+                        <?php foreach (getAreaOptions() as $a): ?>
+                            <option value="<?php echo htmlspecialchars($a); ?>"><?php echo htmlspecialchars($a); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>INTRAMURAL</label>
+                    <input type="text" name="intramural" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>DEPARTAMENTO</label>
+                    <select name="departamento" class="form-control">
+                        <option value="">Seleccione un departamento...</option>
+                        <?php foreach (getDepartamentoOptions() as $d): ?>
+                            <option value="<?php echo htmlspecialchars($d); ?>"><?php echo htmlspecialchars($d); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>MUNICIPIO</label>
+                    <select name="municipio" class="form-control">
+                        <option value="">Seleccione un municipio...</option>
+                        <?php foreach (getMunicipioOptions() as $m): ?>
+                            <option value="<?php echo htmlspecialchars($m); ?>"><?php echo htmlspecialchars($m); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>SERVICIO</label>
+                    <select name="servicio" class="form-control">
+                        <option value="">Seleccione un servicio...</option>
+                        <?php foreach (getServicioOptions() as $s): ?>
+                            <option value="<?php echo htmlspecialchars($s); ?>"><?php echo htmlspecialchars($s); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>FECHA DE INICIO</label>
+                    <input type="date" name="fecha_inicio" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>FECHA FIN</label>
+                    <input type="date" name="fecha_fin" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>FECHA FIN DE CONTRATO</label>
+                    <input type="date" name="fecha_fin_contrato" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>NIVEL DE RIESGO</label>
+                    <select name="nivel_riesgo" class="form-control">
+                        <option value="">Seleccione el nivel de riesgo...</option>
+                        <?php foreach (getNivelRiesgoOptions() as $r): ?>
+                            <option value="<?php echo htmlspecialchars($r); ?>"><?php echo htmlspecialchars($r); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>EPS</label>
+                    <input type="text" name="eps" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>ARL</label>
+                    <input type="text" name="arl" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>AFP</label>
+                    <input type="text" name="afp" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>FECHA VENCIMIENTO DE REGISTRO</label>
+                    <input type="date" name="fecha_vencimiento_registro" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>DÍAS TRABAJADOS (Cálculo Automático)</label>
+                    <input type="text" name="dias_trabajados" class="form-control" readonly value="0">
+                </div>
+            </div>
+
+            <div id="tab-pagos" class="tab-content grid-2" style="display: none;">
+                <div class="form-group">
+                    <label>VALOR POR EVENTO</label>
+                    <input type="number" name="valor_evento" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>MESADA</label>
+                    <input type="number" name="mesada" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>PRES MENSUAL (Cálculo Automático)</label>
+                    <input type="number" name="pres_mensual" class="form-control" readonly value="0">
+                </div>
+                <div class="form-group">
+                    <label>PRES ANUAL (Cálculo Automático)</label>
+                    <input type="number" name="pres_anual" class="form-control" readonly value="0">
+                </div>
+                <div class="form-group">
+                    <label>EXTRAS LEGALES</label>
+                    <input type="number" name="extras_legales" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>AUX. TRANSPORTE (Cálculo Automático)</label>
+                    <input type="number" name="aux_transporte" class="form-control" readonly value="0">
+                </div>
+                <div class="form-group">
+                    <label>NUM. CUENTA</label>
+                    <input type="text" name="num_cuenta" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>ENTIDAD BANCARIA</label>
+                    <input type="text" name="entidad_bancaria" class="form-control">
+                </div>
+            </div>
+
+            <div id="tab-aportes" class="tab-content grid-3" style="display: none;">
+                <div class="form-group">
+                    <label>TASA ARL (Cálculo Automático)</label>
+                    <input type="text" name="tasa_arl" class="form-control" readonly value="Cálculo Pendiente">
+                </div>
+                <div class="form-group">
+                    <label>AP. SALUD MES</label>
+                    <input type="number" name="ap_salud_mes" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>AP. PENSIÓN MES</label>
+                    <input type="number" name="ap_pension_mes" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>AP. ARL MES</label>
+                    <input type="number" name="ap_arl_mes" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>AP. CAJA MES</label>
+                    <input type="number" name="ap_caja_mes" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>AP. SENA MES</label>
+                    <input type="number" name="ap_sena_mes" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>AP. ICBF MES</label>
+                    <input type="number" name="ap_icbf_mes" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>AP. CESANTÍA ANUAL</label>
+                    <input type="number" name="ap_cesantia_anual" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>AP. INTERÉS CESANTÍAS ANUAL</label>
+                    <input type="number" name="ap_interes_cesantias_anual" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>AP. PRIMA ANUAL</label>
+                    <input type="number" name="ap_prima_anual" class="form-control" step="0.01">
+                </div>
+            </div>
+
+            <div id="tab-cursos" class="tab-content grid-3" style="display: none;">
+                <div class="form-group">
+                    <label>SOPORTE VITAL AVANZADO (Vigencia)</label>
+                    <input type="date" name="vigencia_sva" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>ATENCIÓN VÍCTIMAS DE VIOLENCIA SEXUAL (Vigencia)</label>
+                    <input type="date" name="vigencia_violencia_sexual" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>CURSO SOPORTE VITAL BÁSICO (Vigencia)</label>
+                    <input type="date" name="vigencia_svb" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>CURSO MANEJO DEL DOLOR Y CUIDADOS PALIATIVOS (Vigencia)</label>
+                    <input type="date" name="vigencia_paliativos" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>CURSO HUMANIZACIÓN TOMA DE MUESTRAS DE LABORATORIO (Vigencia)</label>
+                    <input type="date" name="vigencia_humanizacion_muestras" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>MANEJO DEL DUELO (Vigencia)</label>
+                    <input type="date" name="vigencia_duelo" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>MANEJO RESIDUOS (Vigencia)</label>
+                    <input type="date" name="vigencia_residuos" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>SEGURIDAD VIAL (Vigencia)</label>
+                    <input type="date" name="vigencia_seguridad_vial" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>VIGIFLOW (Vigencia)</label>
+                    <input type="date" name="vigencia_vigiflow" class="form-control">
+                </div>
+            </div>
+        </form>
+
+            
         </div>
 
 
@@ -329,11 +505,14 @@ $empleados = [];
     
 <!-- fin del formulario -->
        
+
+
+
         <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="cerrarModalEmpleado()">
+            <button type="button" class="btn btn-danger" onclick="cerrarModalEmpleado()">
                 Cancelar
             </button>
-            <button type="submit" class="btn btn-primary" form="form-empleado">
+            <button type="submit" class="btn btn-primary" form="form-nuevo-empleado">
                 <i class="fas fa-save"></i> Guardar
             </button>
         </div>
