@@ -2,10 +2,49 @@
 require_once 'includes/header.php';
 require_once 'functions/utils.php';
 // Verificar permisos
+// ASUME QUE EXISTE SessionManager en algun 'require_once'
 if (!SessionManager::tienePermiso('gerente')) {
     header('Location: dashboard.php');
     exit();
 }
+
+// =========================================================================
+// INICIO: Bloque de Opciones y Helper Functions (AÑADIDO PARA EL MODAL)
+// =========================================================================
+
+// Opciones de Selects (Copiado de nuevo_empleado.php)
+$opciones_select = [
+    'tipo_contrato' => ['OPS', 'LAB'],
+    'estado' => ['ACTIVO', 'ENVIADO PARA FIRMA', 'TERMINADO', 'PROYECTAR CONTRATO', 'ACTIVO SIN FIRMA', 'LIQUIDADO'],
+    'poliza' => ['TIENE', 'NO TIENE', 'NO APLICA'],
+    'municipio' => ['PASTO', 'IPIALES', 'ALBÁN', 'ALDANA', 'ANCUYA', 'ARBOLEDA', 'BARBACOAS', 'BELÉN', 'BUESACO', 'CHACHAGÜÍ', 'COLÓN', 'CONSACÁ', 'CONTADERO', 'CÓRDOBA', 'CUASPUD', 'CUMBAL', 'CUMBITARA', 'EL CHARCO', 'EL PEÑOL', 'EL ROSARIO', 'EL TABLÓN DE GÓMEZ', 'EL TAMBO', 'FRANCISCO PIZARRO', 'FUNES', 'GUACHUCAL', 'GUAITARILLA', 'GUALMATÁN', 'ILES', 'IMUÉS', 'LA CRUZ', 'LA FLORIDA', 'LA LLANADA', 'LA TOLA', 'LA UNIÓN', 'LEIVA', 'LINARES', 'LOS ANDES', 'MAGÜÍ PAYÁN', 'MALLAMA', 'MOSQUERA', 'NARIÑO', 'OLAYA HERRERA', 'OSPINA', 'POLICARPA', 'POTOSÍ', 'PROVIDENCIA', 'PUERRES', 'PUPIALES', 'RICAURTE', 'ROBERTO PAYÁN', 'SAMANIEGO', 'SANDONÁ', 'SAN BERNARDO', 'SAN LORENZO', 'SAN PABLO', 'SAN PEDRO DE CARTAGO', 'SANTA BÁRBARA', 'SANTACRUZ', 'SAPUYES', 'TAMINANGO', 'TANGUA', 'TUMACO', 'TUQUERRES', 'YACUANQUER', 'ALTO PUTUMAYO'],
+    'genero' => ['MASCULINO', 'FEMENINO'],
+    'grupo_sanguineo' => ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'],
+    'nivel' => ['OPERATIVO ESPECIALIZADO', 'SOPORTE', 'COORDINADOR/MANDO MEDIO', 'OPERATIVO TÉCNICO/ADMINISTRATIVO', 'DIRECTIVO'],
+    'calidad' => ['ASISTENCIAL (EN SALUD)', 'ADMINISTRATIVO (EN SALUD)'],
+    'area' => ['PROGRAMA ARTRITIS', 'PROGRAMA B24X', 'HOME CARE', 'OPTOMETRÍA', 'PALIATIVOS', 'PROGRAMA EPOC', 'PROGRAMA NEFROPROTECCIÓN', 'SERVICIO FARMACÉUTICO ARTRITIS', 'SERVICIO FARMACÉUTICO B24X', 'ATENCIÓN AL USUARIO', 'CALIDAD', 'CONTABILIDAD', 'FACTURACIÓN', 'INFRAESTRUCTURA', 'TALENTO HUMANO', 'TECNOLOGÍA Y LOGÍSTICA', 'GOBIERNO', 'SUBDIRECCIONES', 'AUXILIAR CAC', 'SERVICIOS GENERALES', 'LABORATORIO', 'ASISTENCIAL', 'ADMINISTRATIVO', 'POST-CONSULTA'],
+    'nivel_riesgo' => ['I', 'II', 'III', 'IV', 'V'],
+    'programa' => ['PROGRAMA ARTRITIS', 'PROGRAMA B24X', 'HOME CARE', 'OPTOMETRÍA', 'PALIATIVOS', 'PROGRAMA EPOC', 'PROGRAMA NEFROPROTECCIÓN', 'LABORATORIO', 'ADMINISTRATIVO'],
+    'servicio' => ['ATENCIÓN A PACIENTE', 'HORA DE SERVICIO', 'NO APLICA'],
+    'cargo' => ['FISIOTERAPEUTA', 'TERAPEUTA OCUPACIONAL', 'FONOAUDIOLOGO/A', 'AUXILIAR DE ENFERMERIA', 'PSICOLOGO/A', 'TERAPEUTA RESPIRATORIO', 'CUIDADOR/A', 'TRABAJADOR/A SOCIAL', 'GERENTE GENERAL', 'AUXILIAR DE SERVICIOS GENERALES', 'AUXILIAR DE ENFERMERÍA Y TOMA DE MUESTRAS', 'JEFE DE ENFERMERIA', 'TECNICO ADMINISTRATIVO', 'AUXILIAR CONTABLE', 'DIRECTOR TECNICO DE SERVICIO FARMACEUTICO', 'TECNICO EN SERVICIO FARMACEUTICO', 'AUXILIAR DE TALENTO HUMANO', 'AUXILIAR DE ODONTOLOGIA', 'MÉDICO EXPERTO VIH', 'REVISORA FISCAL', 'PSIQUIATRA', 'FISIATRA', 'REUMATOLOGO/A', 'QUIMICO FARMACEUTICA - ASESORA EXTERNA', 'INFECTOLOGIA - MEDICO INTERNISTA', 'INGENIERO/A BIOMÉDICO/A', 'INGENIERO/A AMBIENTAL', 'SIBDIRECTOR ASISTENCIAL', 'MEDICO GENERAL', 'CONTADORA', 'INFECTOLOGO/A PEDIATRA', 'MEDICO DEL DOLOR Y CUIDADOS PALIATIVOS', 'APOYO TRABAJO SOCIAL', 'TECNICO ADMINISTRATIVO Y GESTOR DE RECURSOS FÍSICOS', 'SUPERVISOR DE PROGRAMA', 'SIBDIRECTOR ADMINISTRATIVO', 'COORDINADOR DE FACTURCIÓN, CUENTAS MEDICAS Y SISTEMAS', 'PROFESIONAL ADMINISTRATIVO', 'OPTÓMETRA', 'COORDINADORA DE TALENTO HUMANO', 'NUTRICIONISTA', 'ODONTOLOGO/A', 'AUXILIAR DE PROCEDIMIENTOS DE MEDICAMENTOS', 'BACTERIOLOGA', 'AUXILIAR DE LABORATORIO', 'SUPERVISOR DE LABORATORIO', 'PROFESIONAL SST', 'QUIMICO FARMACEUTICA', 'COORDINADORA', 'COORDINADOR', 'INGENIERO DE SISTEMAS', 'INGENIERO/A INDUSTRIAL', 'MEDICO INTERNISTA', 'MEDICO OCUPACIONAL', 'BACTERIOLOGO', 'APRENDIZ SENA', 'PRACTICANTE UNIVERSITARIO'],
+    'departamento' => ['NARIÑO', 'CAUCA', 'VALLE'],
+    'smlv' => ['1423500']
+];
+
+// Función para generar las opciones de un select
+function generar_opciones($opciones, $seleccionado = '') {
+    $html = '';
+    foreach ($opciones as $opcion) {
+        $opcion_limpia = htmlspecialchars($opcion);
+        $selected = ($opcion_limpia === $seleccionado) ? 'selected' : '';
+        $html .= "<option value=\"{$opcion_limpia}\" {$selected}>{$opcion_limpia}</option>";
+    }
+    return $html;
+}
+
+// =========================================================================
+// FIN: Bloque de Opciones y Helper Functions
+// =========================================================================
 
 // =========================================================================
 // INICIO: Bloque de Conexión a Base de Datos (a ser implementado)
@@ -32,6 +71,8 @@ $empleados = [];
 // =========================================================================
 // FIN: Bloque de Conexión a Base de Datos
 // =========================================================================
+
+
 
 ?>
 <link rel="stylesheet" href="assets/css/empleados.css">
@@ -228,13 +269,6 @@ $empleados = [];
     </div>
 </div>
 
-
-    
-
-
-
-
-<!-- formulario de nuevo usuario -->
 <div id="modal-empleado" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
@@ -245,268 +279,329 @@ $empleados = [];
         </div>
         
         <div class="modal-body">
-                <form id="form-nuevo-empleado" method="POST" action="functions/empleados.php">
+            <form id="form-nuevo-empleado" method="POST" action="nuevo_empleado.php"> 
             
                 <div class="tab-header mb-lg">
-                    <button type="button" class="tab-button active" data-tab="laboral">INFORMACIÓN LABORAL</button>
-                    <button type="button" class="tab-button" data-tab="pagos">INFORMACIÓN PAGOS</button>
-                    <button type="button" class="tab-button" data-tab="aportes">INFORMACIÓN APORTES</button>
-                    <button type="button" class="tab-button" data-tab="cursos">VIGENCIA DE CURSOS</button>
+                    <button type="button" class="tab-button active" onclick="mostrarSeccionModal('personal')">INFORMACIÓN PERSONAL</button>
+                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('laboral')">INFORMACIÓN LABORAL</button>
+                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('pagos')">INFORMACIÓN PAGOS</button>
+                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('aportes')">INFORMACIÓN APORTES</button>
+                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('cursos')">VIGENCIA DE CURSOS</button>
                 </div>
 
-            <div id="tab-laboral" class="tab-content active grid-3">
-                <div class="form-group">
-                    <label>SEDE</label>
-                    <input type="text" name="sede" class="form-control" required>
+                <div id="personal" class="tab-content-modal active grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    
+                    <div class="form-group">
+                        <label for="tipo_contrato">CONTRATO *</label>
+                        <select id="tipo_contrato" name="tipo_contrato" class="form-control" required>
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['tipo_contrato']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="codigo">CÓDIGO</label>
+                        <input type="text" id="codigo" name="codigo" class="form-control" placeholder="Se autogenerará si está vacío">
+                    </div>
+                    <div class="form-group">
+                        <label for="estado">ESTADO *</label>
+                        <select id="estado" name="estado" class="form-control" required>
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['estado']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cedula">CÉDULA (DOCUMENTO DE IDENTIDAD) *</label>
+                        <input type="text" id="cedula" name="cedula" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nombre_completo">NOMBRE *</label>
+                        <input type="text" id="nombre_completo" name="nombre_completo" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_nacimiento">FECHA DE NACIMIENTO</label>
+                        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="direccion">DIRECCIÓN</label>
+                        <input type="text" id="direccion" name="direccion" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">CORREO (CORREO ELECTRÓNICO) *</label>
+                        <input type="email" id="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono">CELULAR</label>
+                        <input type="tel" id="telefono" name="telefono" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="grupo_sanguineo">GRUPO SANGUÍNEO (RH) *</label>
+                        <select id="grupo_sanguineo" name="grupo_sanguineo" class="form-control" required>
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['grupo_sanguineo']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="genero">GÉNERO *</label>
+                        <select id="genero" name="genero" class="form-control" required>
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['genero']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_ingreso">FECHA INGRESO</label>
+                        <input type="date" id="fecha_ingreso" name="fecha_ingreso" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_fin_zo_ingreso">FECHA FIN ZONA OCUPACIONAL INGRESO</label>
+                        <input type="date" id="fecha_fin_zo_ingreso" name="fecha_fin_zo_ingreso" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_fin_zo_egreso">FECHA FIN ZONA OCUPACIONAL EGRESO</label>
+                        <input type="date" id="fecha_fin_zo_egreso" name="fecha_fin_zo_egreso" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="contacto_emergencia">CONTACTO EMERGENCIA</label>
+                        <input type="text" id="contacto_emergencia" name="contacto_emergencia" class="form-control" placeholder="Nombre y Teléfono">
+                    </div>
+                    <div class="form-group">
+                        <label for="poliza">PÓLIZA</label>
+                        <select id="poliza" name="poliza" class="form-control">
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['poliza']); ?>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>CARGO</label>
-                    <select name="cargo" class="form-control" required>
-                        <option value="">Seleccione un cargo...</option>
-                        <?php foreach (getCargoOptions() as $c): ?>
-                            <option value="<?php echo htmlspecialchars($c); ?>"><?php echo htmlspecialchars($c); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+
+                <div id="laboral" class="tab-content-modal grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    
+                    <div class="form-group">
+                        <label for="sede">SEDE</label>
+                        <input type="text" id="sede" name="sede" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="cargo">CARGO *</label>
+                        <select id="cargo" name="cargo" class="form-control" required>
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['cargo']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="nivel">NIVEL</label>
+                        <select id="nivel" name="nivel" class="form-control">
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['nivel']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="calidad">CALIDAD</label>
+                        <select id="calidad" name="calidad" class="form-control">
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['calidad']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="programa">PROGRAMA</label>
+                        <select id="programa" name="programa" class="form-control">
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['programa']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="area">ÁREA</label>
+                        <select id="area" name="area" class="form-control">
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['area']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="intramural">INTRAMURAL</label>
+                        <input type="text" id="intramural" name="intramural" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="departamento">DEPARTAMENTO *</label>
+                        <select id="departamento" name="departamento" class="form-control" required>
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['departamento']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="municipio">MUNICIPIO *</label>
+                        <select id="municipio" name="municipio" class="form-control" required>
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['municipio']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="servicio">SERVICIO</label>
+                        <select id="servicio" name="servicio" class="form-control">
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['servicio']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_inicio">FECHA DE INICIO (Contrato)</label>
+                        <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_fin">FECHA FIN (Contrato)</label>
+                        <input type="date" id="fecha_fin" name="fecha_fin" class="form-control" onchange="calcularDiasModal()">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_fin_contrato">FECHA FIN DE CONTRATO</label>
+                        <input type="date" id="fecha_fin_contrato" name="fecha_fin_contrato" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="nivel_riesgo">NIVEL DE RIESGO</label>
+                        <select id="nivel_riesgo" name="nivel_riesgo" class="form-control">
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones($opciones_select['nivel_riesgo']); ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="eps">EPS</label>
+                        <input type="text" id="eps" name="eps" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="arl">ARL</label>
+                        <input type="text" id="arl" name="arl" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="afp">AFP</label>
+                        <input type="text" id="afp" name="afp" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_vencimiento_registro">FECHA VENCIMIENTO DE REGISTRO</label>
+                        <input type="date" id="fecha_vencimiento_registro" name="fecha_vencimiento_registro" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="dias_trabajados">DÍAS TRABAJADOS (Auto)</label>
+                        <input type="number" id="dias_trabajados" name="dias_trabajados" class="form-control" readonly placeholder="Calculado por DB">
+                    </div>
+                    <div class="form-group">
+                        <label for="smlv">SMLV BASE</label>
+                        <select id="smlv" name="smlv" class="form-control">
+                            <?php echo generar_opciones($opciones_select['smlv']); ?>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>NIVEL</label>
-                    <select name="nivel" class="form-control">
-                        <option value="">Seleccione un nivel...</option>
-                        <?php foreach (getNivelOptions() as $n): ?>
-                            <option value="<?php echo htmlspecialchars($n); ?>"><?php echo htmlspecialchars($n); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+
+                <div id="pagos" class="tab-content-modal grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    
+                    <div class="form-group">
+                        <label for="valor_por_evento">VALOR POR EVENTO</label>
+                        <input type="number" step="0.01" id="valor_por_evento" name="valor_por_evento" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="mesada">MESADA</label>
+                        <input type="number" step="0.01" id="mesada" name="mesada" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="pres_mensual">PRES MENSUAL (Auto)</label>
+                        <input type="number" step="0.01" id="pres_mensual" name="pres_mensual" class="form-control" readonly placeholder="Calculado por DB">
+                    </div>
+                    <div class="form-group">
+                        <label for="pres_anual">PRES ANUAL (Auto)</label>
+                        <input type="number" step="0.01" id="pres_anual" name="pres_anual" class="form-control" readonly placeholder="Calculado por DB">
+                    </div>
+                    <div class="form-group">
+                        <label for="extras_legales">EXTRAS LEGALES</label>
+                        <input type="number" step="0.01" id="extras_legales" name="extras_legales" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="aux_transporte">AUX. TRANSPORTE (Auto)</label>
+                        <input type="number" step="0.01" id="aux_transporte" name="aux_transporte" class="form-control" readonly placeholder="Calculado por DB">
+                    </div>
+                    <div class="form-group">
+                        <label for="num_cuenta">NUM. CUENTA</label>
+                        <input type="text" id="num_cuenta" name="num_cuenta" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="entidad_bancaria">ENTIDAD BANCARIA</label>
+                        <input type="text" id="entidad_bancaria" name="entidad_bancaria" class="form-control">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>CALIDAD</label>
-                    <select name="calidad" class="form-control">
-                        <option value="">Seleccione la calidad...</option>
-                        <?php foreach (getCalidadOptions() as $c): ?>
-                            <option value="<?php echo htmlspecialchars($c); ?>"><?php echo htmlspecialchars($c); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+
+                <div id="aportes" class="tab-content-modal grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    
+                    <div class="form-group">
+                        <label for="tasa_arl">TASA ARL (Auto)</label>
+                        <input type="text" id="tasa_arl" name="tasa_arl" class="form-control" readonly placeholder="Calculado por DB">
+                    </div>
+                    <div class="form-group">
+                        <label for="ap_salud_mes">AP. SALUD MES</label>
+                        <input type="number" step="0.01" id="ap_salud_mes" name="ap_salud_mes" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="ap_pension_mes">AP. PENSIÓN MES</label>
+                        <input type="number" step="0.01" id="ap_pension_mes" name="ap_pension_mes" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="ap_arl_mes_ap_caja_mes">AP. ARL/CAJA MES</label>
+                        <input type="number" step="0.01" id="ap_arl_mes_ap_caja_mes" name="ap_arl_mes_ap_caja_mes" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="ap_sena_mes">AP. SENA MES</label>
+                        <input type="number" step="0.01" id="ap_sena_mes" name="ap_sena_mes" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="ap_icbf_mes">AP. ICBF MES</label>
+                        <input type="number" step="0.01" id="ap_icbf_mes" name="ap_icbf_mes" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="ap_cesantia_anual">AP. CESANTÍA ANUAL</label>
+                        <input type="number" step="0.01" id="ap_cesantia_anual" name="ap_cesantia_anual" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="ap_interes_cesantias_anual">AP. INTERÉS CESANTÍAS ANUAL</label>
+                        <input type="number" step="0.01" id="ap_interes_cesantias_anual" name="ap_interes_cesantias_anual" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="ap_prima_anual">AP. PRIMA ANUAL</label>
+                        <input type="number" step="0.01" id="ap_prima_anual" name="ap_prima_anual" class="form-control">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>PROGRAMA</label>
-                    <select name="programa" class="form-control">
-                        <option value="">Seleccione un programa...</option>
-                        <?php foreach (getProgramaOptions() as $p): ?>
-                            <option value="<?php echo htmlspecialchars($p); ?>"><?php echo htmlspecialchars($p); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+
+                <div id="cursos" class="tab-content-modal grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    
+                    <div class="form-group">
+                        <label for="vigencia_soporte_vital_avanzado">SOPORTE VITAL AVANZADO (Vigencia)</label>
+                        <input type="date" id="vigencia_soporte_vital_avanzado" name="vigencia_soporte_vital_avanzado" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="vigencia_victimas_violencia_sexual">ATENCIÓN VÍCTIMAS DE VIOLENCIA SEXUAL (Vigencia)</label>
+                        <input type="date" id="vigencia_victimas_violencia_sexual" name="vigencia_victimas_violencia_sexual" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="vigencia_soporte_vital_basico">CURSO SOPORTE VITAL BÁSICO (Vigencia)</label>
+                        <input type="date" id="vigencia_soporte_vital_basico" name="vigencia_soporte_vital_basico" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="vigencia_manejo_dolor_cuidados_paliativos">CURSO MANEJO DEL DOLOR Y CP (Vigencia)</label>
+                        <input type="date" id="vigencia_manejo_dolor_cuidados_paliativos" name="vigencia_manejo_dolor_cuidados_paliativos" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="vigencia_humanizacion_toma_muestras">HUMANIZACIÓN TOMA DE MUESTRAS (Vigencia)</label>
+                        <input type="date" id="vigencia_humanizacion_toma_muestras" name="vigencia_humanizacion_toma_muestras" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="vigencia_manejo_duelo">MANEJO DEL DUELO (Vigencia)</label>
+                        <input type="date" id="vigencia_manejo_duelo" name="vigencia_manejo_duelo" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="vigencia_manejo_residuos">MANEJO RESIDUOS (Vigencia)</label>
+                        <input type="date" id="vigencia_manejo_residuos" name="vigencia_manejo_residuos" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="vigencia_seguridad_vial">SEGURIDAD VIAL (Vigencia)</label>
+                        <input type="date" id="vigencia_seguridad_vial" name="vigencia_seguridad_vial" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="vigencia_vigiflow">VIGIFLOW (Vigencia)</label>
+                        <input type="date" id="vigencia_vigiflow" name="vigencia_vigiflow" class="form-control">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>ÁREA</label>
-                    <select name="area" class="form-control">
-                        <option value="">Seleccione un área...</option>
-                        <?php foreach (getAreaOptions() as $a): ?>
-                            <option value="<?php echo htmlspecialchars($a); ?>"><?php echo htmlspecialchars($a); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>INTRAMURAL</label>
-                    <input type="text" name="intramural" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>DEPARTAMENTO</label>
-                    <select name="departamento" class="form-control">
-                        <option value="">Seleccione un departamento...</option>
-                        <?php foreach (getDepartamentoOptions() as $d): ?>
-                            <option value="<?php echo htmlspecialchars($d); ?>"><?php echo htmlspecialchars($d); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>MUNICIPIO</label>
-                    <select name="municipio" class="form-control">
-                        <option value="">Seleccione un municipio...</option>
-                        <?php foreach (getMunicipioOptions() as $m): ?>
-                            <option value="<?php echo htmlspecialchars($m); ?>"><?php echo htmlspecialchars($m); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>SERVICIO</label>
-                    <select name="servicio" class="form-control">
-                        <option value="">Seleccione un servicio...</option>
-                        <?php foreach (getServicioOptions() as $s): ?>
-                            <option value="<?php echo htmlspecialchars($s); ?>"><?php echo htmlspecialchars($s); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>FECHA DE INICIO</label>
-                    <input type="date" name="fecha_inicio" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>FECHA FIN</label>
-                    <input type="date" name="fecha_fin" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>FECHA FIN DE CONTRATO</label>
-                    <input type="date" name="fecha_fin_contrato" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>NIVEL DE RIESGO</label>
-                    <select name="nivel_riesgo" class="form-control">
-                        <option value="">Seleccione el nivel de riesgo...</option>
-                        <?php foreach (getNivelRiesgoOptions() as $r): ?>
-                            <option value="<?php echo htmlspecialchars($r); ?>"><?php echo htmlspecialchars($r); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>EPS</label>
-                    <input type="text" name="eps" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>ARL</label>
-                    <input type="text" name="arl" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>AFP</label>
-                    <input type="text" name="afp" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>FECHA VENCIMIENTO DE REGISTRO</label>
-                    <input type="date" name="fecha_vencimiento_registro" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>DÍAS TRABAJADOS (Cálculo Automático)</label>
-                    <input type="text" name="dias_trabajados" class="form-control" readonly value="0">
-                </div>
+            </form>
             </div>
-
-            <div id="tab-pagos" class="tab-content grid-2" style="display: none;">
-                <div class="form-group">
-                    <label>VALOR POR EVENTO</label>
-                    <input type="number" name="valor_evento" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>MESADA</label>
-                    <input type="number" name="mesada" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>PRES MENSUAL (Cálculo Automático)</label>
-                    <input type="number" name="pres_mensual" class="form-control" readonly value="0">
-                </div>
-                <div class="form-group">
-                    <label>PRES ANUAL (Cálculo Automático)</label>
-                    <input type="number" name="pres_anual" class="form-control" readonly value="0">
-                </div>
-                <div class="form-group">
-                    <label>EXTRAS LEGALES</label>
-                    <input type="number" name="extras_legales" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>AUX. TRANSPORTE (Cálculo Automático)</label>
-                    <input type="number" name="aux_transporte" class="form-control" readonly value="0">
-                </div>
-                <div class="form-group">
-                    <label>NUM. CUENTA</label>
-                    <input type="text" name="num_cuenta" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>ENTIDAD BANCARIA</label>
-                    <input type="text" name="entidad_bancaria" class="form-control">
-                </div>
-            </div>
-
-            <div id="tab-aportes" class="tab-content grid-3" style="display: none;">
-                <div class="form-group">
-                    <label>TASA ARL (Cálculo Automático)</label>
-                    <input type="text" name="tasa_arl" class="form-control" readonly value="Cálculo Pendiente">
-                </div>
-                <div class="form-group">
-                    <label>AP. SALUD MES</label>
-                    <input type="number" name="ap_salud_mes" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>AP. PENSIÓN MES</label>
-                    <input type="number" name="ap_pension_mes" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>AP. ARL MES</label>
-                    <input type="number" name="ap_arl_mes" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>AP. CAJA MES</label>
-                    <input type="number" name="ap_caja_mes" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>AP. SENA MES</label>
-                    <input type="number" name="ap_sena_mes" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>AP. ICBF MES</label>
-                    <input type="number" name="ap_icbf_mes" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>AP. CESANTÍA ANUAL</label>
-                    <input type="number" name="ap_cesantia_anual" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>AP. INTERÉS CESANTÍAS ANUAL</label>
-                    <input type="number" name="ap_interes_cesantias_anual" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>AP. PRIMA ANUAL</label>
-                    <input type="number" name="ap_prima_anual" class="form-control" step="0.01">
-                </div>
-            </div>
-
-            <div id="tab-cursos" class="tab-content grid-3" style="display: none;">
-                <div class="form-group">
-                    <label>SOPORTE VITAL AVANZADO (Vigencia)</label>
-                    <input type="date" name="vigencia_sva" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>ATENCIÓN VÍCTIMAS DE VIOLENCIA SEXUAL (Vigencia)</label>
-                    <input type="date" name="vigencia_violencia_sexual" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>CURSO SOPORTE VITAL BÁSICO (Vigencia)</label>
-                    <input type="date" name="vigencia_svb" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>CURSO MANEJO DEL DOLOR Y CUIDADOS PALIATIVOS (Vigencia)</label>
-                    <input type="date" name="vigencia_paliativos" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>CURSO HUMANIZACIÓN TOMA DE MUESTRAS DE LABORATORIO (Vigencia)</label>
-                    <input type="date" name="vigencia_humanizacion_muestras" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>MANEJO DEL DUELO (Vigencia)</label>
-                    <input type="date" name="vigencia_duelo" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>MANEJO RESIDUOS (Vigencia)</label>
-                    <input type="date" name="vigencia_residuos" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>SEGURIDAD VIAL (Vigencia)</label>
-                    <input type="date" name="vigencia_seguridad_vial" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>VIGIFLOW (Vigencia)</label>
-                    <input type="date" name="vigencia_vigiflow" class="form-control">
-                </div>
-            </div>
-        </form>
-
-            
-        </div>
-
-
-
-        
-    
-<!-- fin del formulario -->
-       
-
-
 
         <div class="modal-footer">
             <button type="button" class="btn btn-danger" onclick="cerrarModalEmpleado()">
@@ -520,5 +615,52 @@ $empleados = [];
 </div>
 
 <script src="assets/js/empleados.js"></script>
+
+<script>
+    // Función de JavaScript para cambiar entre secciones (TABS) dentro del modal
+    function mostrarSeccionModal(seccionId) {
+        // Oculta todas las secciones
+        document.querySelectorAll('.tab-content-modal').forEach(content => {
+            content.style.display = 'none';
+            content.classList.remove('active');
+        });
+        // Desactiva todos los botones
+        document.querySelectorAll('.tab-buttons-modal .tab-button').forEach(button => {
+            button.classList.remove('active');
+        });
+
+        // Muestra la sección seleccionada y la activa
+        document.getElementById(seccionId).style.display = 'grid'; 
+        document.getElementById(seccionId).classList.add('active');
+        
+        // Activa el botón de la pestaña correspondiente
+        document.querySelector(`.tab-buttons-modal button[onclick="mostrarSeccionModal('${seccionId}')"]`).classList.add('active');
+    }
+    
+    // Inicializar el modal para mostrar la sección 'personal' al cargar la página
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('modal-empleado');
+        if (modal) {
+             mostrarSeccionModal('personal'); // Mostrar 'INFORMACIÓN PERSONAL' al inicio
+        }
+    });
+
+    // Función para el cálculo de Días Trabajados en el frontend del modal
+    function calcularDiasModal() {
+        const fechaInicio = document.getElementById('fecha_inicio').value;
+        const fechaFin = document.getElementById('fecha_fin').value;
+        
+        if (fechaInicio && fechaFin) {
+            const date1 = new Date(fechaInicio);
+            const date2 = new Date(fechaFin);
+            const diffTime = Math.abs(date2 - date1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+            document.getElementById('dias_trabajados').value = diffDays;
+        } else {
+            document.getElementById('dias_trabajados').value = 0;
+        }
+    }
+</script>
+
 
 <?php require_once 'includes/footer.php'; ?>
