@@ -269,6 +269,9 @@ $empleados = [];
     </div>
 </div>
 
+
+<!-- did nuevo empleado -->
+
 <div id="modal-empleado" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
@@ -613,7 +616,7 @@ $empleados = [];
         </div>
     </div>
 </div>
-
+<!-- fin nuevo empleado -->
 <script src="assets/js/empleados.js"></script>
 
 <script>
