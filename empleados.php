@@ -9,42 +9,26 @@ if (!SessionManager::tienePermiso('gerente')) {
 }
 
 // =========================================================================
-// INICIO: Bloque de Opciones y Helper Functions (AÑADIDO PARA EL MODAL)
+// INICIO: LÓGICA DE PROCESAMIENTO (MIGRADA DE nuevo_empleado.php)
 // =========================================================================
 
-// Opciones de Selects (Copiado de nuevo_empleado.php)
-$opciones_select = [
-    'tipo_contrato' => ['OPS', 'LAB'],
-    'estado' => ['ACTIVO', 'ENVIADO PARA FIRMA', 'TERMINADO', 'PROYECTAR CONTRATO', 'ACTIVO SIN FIRMA', 'LIQUIDADO'],
-    'poliza' => ['TIENE', 'NO TIENE', 'NO APLICA'],
-    'municipio' => ['PASTO', 'IPIALES', 'ALBÁN', 'ALDANA', 'ANCUYA', 'ARBOLEDA', 'BARBACOAS', 'BELÉN', 'BUESACO', 'CHACHAGÜÍ', 'COLÓN', 'CONSACÁ', 'CONTADERO', 'CÓRDOBA', 'CUASPUD', 'CUMBAL', 'CUMBITARA', 'EL CHARCO', 'EL PEÑOL', 'EL ROSARIO', 'EL TABLÓN DE GÓMEZ', 'EL TAMBO', 'FRANCISCO PIZARRO', 'FUNES', 'GUACHUCAL', 'GUAITARILLA', 'GUALMATÁN', 'ILES', 'IMUÉS', 'LA CRUZ', 'LA FLORIDA', 'LA LLANADA', 'LA TOLA', 'LA UNIÓN', 'LEIVA', 'LINARES', 'LOS ANDES', 'MAGÜÍ PAYÁN', 'MALLAMA', 'MOSQUERA', 'NARIÑO', 'OLAYA HERRERA', 'OSPINA', 'POLICARPA', 'POTOSÍ', 'PROVIDENCIA', 'PUERRES', 'PUPIALES', 'RICAURTE', 'ROBERTO PAYÁN', 'SAMANIEGO', 'SANDONÁ', 'SAN BERNARDO', 'SAN LORENZO', 'SAN PABLO', 'SAN PEDRO DE CARTAGO', 'SANTA BÁRBARA', 'SANTACRUZ', 'SAPUYES', 'TAMINANGO', 'TANGUA', 'TUMACO', 'TUQUERRES', 'YACUANQUER', 'ALTO PUTUMAYO'],
-    'genero' => ['MASCULINO', 'FEMENINO'],
-    'grupo_sanguineo' => ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'],
-    'nivel' => ['OPERATIVO ESPECIALIZADO', 'SOPORTE', 'COORDINADOR/MANDO MEDIO', 'OPERATIVO TÉCNICO/ADMINISTRATIVO', 'DIRECTIVO'],
-    'calidad' => ['ASISTENCIAL (EN SALUD)', 'ADMINISTRATIVO (EN SALUD)'],
-    'area' => ['PROGRAMA ARTRITIS', 'PROGRAMA B24X', 'HOME CARE', 'OPTOMETRÍA', 'PALIATIVOS', 'PROGRAMA EPOC', 'PROGRAMA NEFROPROTECCIÓN', 'SERVICIO FARMACÉUTICO ARTRITIS', 'SERVICIO FARMACÉUTICO B24X', 'ATENCIÓN AL USUARIO', 'CALIDAD', 'CONTABILIDAD', 'FACTURACIÓN', 'INFRAESTRUCTURA', 'TALENTO HUMANO', 'TECNOLOGÍA Y LOGÍSTICA', 'GOBIERNO', 'SUBDIRECCIONES', 'AUXILIAR CAC', 'SERVICIOS GENERALES', 'LABORATORIO', 'ASISTENCIAL', 'ADMINISTRATIVO', 'POST-CONSULTA'],
-    'nivel_riesgo' => ['I', 'II', 'III', 'IV', 'V'],
-    'programa' => ['PROGRAMA ARTRITIS', 'PROGRAMA B24X', 'HOME CARE', 'OPTOMETRÍA', 'PALIATIVOS', 'PROGRAMA EPOC', 'PROGRAMA NEFROPROTECCIÓN', 'LABORATORIO', 'ADMINISTRATIVO'],
-    'servicio' => ['ATENCIÓN A PACIENTE', 'HORA DE SERVICIO', 'NO APLICA'],
-    'cargo' => ['FISIOTERAPEUTA', 'TERAPEUTA OCUPACIONAL', 'FONOAUDIOLOGO/A', 'AUXILIAR DE ENFERMERIA', 'PSICOLOGO/A', 'TERAPEUTA RESPIRATORIO', 'CUIDADOR/A', 'TRABAJADOR/A SOCIAL', 'GERENTE GENERAL', 'AUXILIAR DE SERVICIOS GENERALES', 'AUXILIAR DE ENFERMERÍA Y TOMA DE MUESTRAS', 'JEFE DE ENFERMERIA', 'TECNICO ADMINISTRATIVO', 'AUXILIAR CONTABLE', 'DIRECTOR TECNICO DE SERVICIO FARMACEUTICO', 'TECNICO EN SERVICIO FARMACEUTICO', 'AUXILIAR DE TALENTO HUMANO', 'AUXILIAR DE ODONTOLOGIA', 'MÉDICO EXPERTO VIH', 'REVISORA FISCAL', 'PSIQUIATRA', 'FISIATRA', 'REUMATOLOGO/A', 'QUIMICO FARMACEUTICA - ASESORA EXTERNA', 'INFECTOLOGIA - MEDICO INTERNISTA', 'INGENIERO/A BIOMÉDICO/A', 'INGENIERO/A AMBIENTAL', 'SIBDIRECTOR ASISTENCIAL', 'MEDICO GENERAL', 'CONTADORA', 'INFECTOLOGO/A PEDIATRA', 'MEDICO DEL DOLOR Y CUIDADOS PALIATIVOS', 'APOYO TRABAJO SOCIAL', 'TECNICO ADMINISTRATIVO Y GESTOR DE RECURSOS FÍSICOS', 'SUPERVISOR DE PROGRAMA', 'SIBDIRECTOR ADMINISTRATIVO', 'COORDINADOR DE FACTURCIÓN, CUENTAS MEDICAS Y SISTEMAS', 'PROFESIONAL ADMINISTRATIVO', 'OPTÓMETRA', 'COORDINADORA DE TALENTO HUMANO', 'NUTRICIONISTA', 'ODONTOLOGO/A', 'AUXILIAR DE PROCEDIMIENTOS DE MEDICAMENTOS', 'BACTERIOLOGA', 'AUXILIAR DE LABORATORIO', 'SUPERVISOR DE LABORATORIO', 'PROFESIONAL SST', 'QUIMICO FARMACEUTICA', 'COORDINADORA', 'COORDINADOR', 'INGENIERO DE SISTEMAS', 'INGENIERO/A INDUSTRIAL', 'MEDICO INTERNISTA', 'MEDICO OCUPACIONAL', 'BACTERIOLOGO', 'APRENDIZ SENA', 'PRACTICANTE UNIVERSITARIO'],
-    'departamento' => ['NARIÑO', 'CAUCA', 'VALLE'],
-    'smlv' => ['1423500']
-];
-
-// Función para generar las opciones de un select
-function generar_opciones($opciones, $seleccionado = '') {
-    $html = '';
-    foreach ($opciones as $opcion) {
-        $opcion_limpia = htmlspecialchars($opcion);
-        $selected = ($opcion_limpia === $seleccionado) ? 'selected' : '';
-        $html .= "<option value=\"{$opcion_limpia}\" {$selected}>{$opcion_limpia}</option>";
-    }
-    return $html;
+/**
+ * NOTA IMPORTANTE: La lógica de procesamiento de formulario y de DB
+ * se ha movido aquí o debe moverse a un archivo de controlador.
+ * De lo contrario, el formulario dejará de funcionar al eliminar nuevo_empleado.php.
+ * * Aquí va el contenido del bloque 'if ($_SERVER['REQUEST_METHOD'] === 'POST')' 
+ * de nuevo_empleado.php (una vez que la DB esté lista).
+ * Temporalmente se deja como placeholder para mantener la estructura.
+ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1. Sanitización y Validación de Datos
+    // $datos_limpios = limpiar_entrada($_POST); // Usando la función de utils.php
+    
+    // 2. Procesamiento (e.g., $db->crearNuevoPersonal($datos_limpios);)
+    
+    // header('Location: empleados.php?success=...');
+    // exit();
 }
-
-// =========================================================================
-// FIN: Bloque de Opciones y Helper Functions
-// =========================================================================
 
 // =========================================================================
 // INICIO: Bloque de Conexión a Base de Datos (a ser implementado)
@@ -52,7 +36,7 @@ function generar_opciones($opciones, $seleccionado = '') {
 
 /**
  * En esta etapa, el desarrollador deberá:
- * 1. Incluir la conexión a la base de datos (e.g., 'includes/db_connection.php').
+ * 1. Incluir la conexión a la base de datos (e.g., 'includes/Db.php' o 'includes/db_connection.php').
  * 2. Implementar una función o lógica para consultar la tabla de empleados
  * y almacenar el resultado en la variable $empleados.
  *
@@ -64,7 +48,8 @@ function generar_opciones($opciones, $seleccionado = '') {
 
 // *************************************************************************
 // NOTA: Temporalmente, para evitar errores mientras se implementa la DB,
-// se inicializa la variable como un array vacío.
+// se inicializa la variable como un array vacío. Se quita la inicialización
+// de SMLV del array eliminado.
 // *************************************************************************
 $empleados = []; 
 
@@ -72,7 +57,11 @@ $empleados = [];
 // FIN: Bloque de Conexión a Base de Datos
 // =========================================================================
 
+// -------------------------------------------------------------------------
+// Secciones del HTML se modifican para usar las funciones de utils.php
+// -------------------------------------------------------------------------
 
+// ... [Resto del código HTML] ...
 
 ?>
 <link rel="stylesheet" href="assets/css/empleados.css">
@@ -282,7 +271,7 @@ $empleados = [];
         </div>
         
         <div class="modal-body">
-            <form id="form-nuevo-empleado" method="POST" action="nuevo_empleado.php"> 
+            <form id="form-nuevo-empleado" method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>"> 
             
                 <div class="tab-header mb-lg">
                     <button type="button" class="tab-button active" onclick="mostrarSeccionModal('personal')">INFORMACIÓN PERSONAL</button>
@@ -298,7 +287,7 @@ $empleados = [];
                         <label for="tipo_contrato">CONTRATO *</label>
                         <select id="tipo_contrato" name="tipo_contrato" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['tipo_contrato']); ?>
+                            <?php echo generar_opciones(getContratoOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
@@ -309,13 +298,14 @@ $empleados = [];
                         <label for="estado">ESTADO *</label>
                         <select id="estado" name="estado" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['estado']); ?>
+                            <?php echo generar_opciones(getEstadoOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="cedula">CÉDULA (DOCUMENTO DE IDENTIDAD) *</label>
                         <input type="text" id="cedula" name="cedula" class="form-control" required>
                     </div>
+
                     <div class="form-group">
                         <label for="nombre_completo">NOMBRE *</label>
                         <input type="text" id="nombre_completo" name="nombre_completo" class="form-control" required>
@@ -340,14 +330,14 @@ $empleados = [];
                         <label for="grupo_sanguineo">GRUPO SANGUÍNEO (RH) *</label>
                         <select id="grupo_sanguineo" name="grupo_sanguineo" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['grupo_sanguineo']); ?>
+                            <?php echo generar_opciones(getGrupoSanguineoOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="genero">GÉNERO *</label>
                         <select id="genero" name="genero" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['genero']); ?>
+                            <?php echo generar_opciones(getGeneroOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
@@ -370,7 +360,7 @@ $empleados = [];
                         <label for="poliza">PÓLIZA</label>
                         <select id="poliza" name="poliza" class="form-control">
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['poliza']); ?>
+                            <?php echo generar_opciones(getPolizaOptions()); ?>
                         </select>
                     </div>
                 </div>
@@ -385,35 +375,35 @@ $empleados = [];
                         <label for="cargo">CARGO *</label>
                         <select id="cargo" name="cargo" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['cargo']); ?>
+                            <?php echo generar_opciones(getCargoOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="nivel">NIVEL</label>
                         <select id="nivel" name="nivel" class="form-control">
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['nivel']); ?>
+                            <?php echo generar_opciones(getNivelOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="calidad">CALIDAD</label>
                         <select id="calidad" name="calidad" class="form-control">
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['calidad']); ?>
+                            <?php echo generar_opciones(getCalidadOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="programa">PROGRAMA</label>
                         <select id="programa" name="programa" class="form-control">
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['programa']); ?>
+                            <?php echo generar_opciones(getProgramaOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="area">ÁREA</label>
                         <select id="area" name="area" class="form-control">
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['area']); ?>
+                            <?php echo generar_opciones(getAreaOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
@@ -424,21 +414,21 @@ $empleados = [];
                         <label for="departamento">DEPARTAMENTO *</label>
                         <select id="departamento" name="departamento" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['departamento']); ?>
+                            <?php echo generar_opciones(getDepartamentoOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="municipio">MUNICIPIO *</label>
                         <select id="municipio" name="municipio" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['municipio']); ?>
+                            <?php echo generar_opciones(getMunicipioOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="servicio">SERVICIO</label>
                         <select id="servicio" name="servicio" class="form-control">
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['servicio']); ?>
+                            <?php echo generar_opciones(getServicioOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
@@ -457,7 +447,7 @@ $empleados = [];
                         <label for="nivel_riesgo">NIVEL DE RIESGO</label>
                         <select id="nivel_riesgo" name="nivel_riesgo" class="form-control">
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones($opciones_select['nivel_riesgo']); ?>
+                            <?php echo generar_opciones(getNivelRiesgoOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
@@ -483,7 +473,7 @@ $empleados = [];
                     <div class="form-group">
                         <label for="smlv">SMLV BASE</label>
                         <select id="smlv" name="smlv" class="form-control">
-                            <?php echo generar_opciones($opciones_select['smlv']); ?>
+                            <?php echo generar_opciones(getSmlvOptions()); ?>
                         </select>
                     </div>
                 </div>

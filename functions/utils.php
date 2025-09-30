@@ -17,6 +17,30 @@ const PORCENTAJE_INTERES_CESANTIAS = 0.01;
 /** Porcentaje de la Mesada destinado a Prima de Servicios (8.33% anual / 12) */
 const PORCENTAJE_PRIMA = 0.0833;
 
+// ===============================================
+// 1. FUNCIONES DE FORMATO Y UTILIDAD HTMl
+// ===============================================
+
+/**
+ * Función para generar las opciones de un select
+ * MIGRADA desde empleados.php
+ * @param array $opciones
+ * @param string $seleccionado
+ * @return string
+ */
+
+function generar_opciones($opciones, $seleccionado = '') {
+    $html = '';
+    // Asegurar que $opciones es un array, incluso si viene de una constante SMLV
+    $opciones_array = is_array($opciones) ? $opciones : [$opciones]; 
+    foreach ($opciones_array as $opcion) {
+        $opcion_limpia = htmlspecialchars($opcion);
+        // Usa una comparación estricta si $seleccionado puede ser nulo o vacío
+        $selected = ($opcion_limpia == $seleccionado && $seleccionado !== '') ? 'selected' : ''; 
+        $html .= "<option value=\"{$opcion_limpia}\" {$selected}>{$opcion_limpia}</option>";
+    }
+    return $html;
+}
 
 // ===============================================
 // 1. FUNCIONES DE FORMATO Y VALIDACIÓN
@@ -28,6 +52,8 @@ const PORCENTAJE_PRIMA = 0.0833;
  * @param string $formato
  * @return string
  */
+
+
 function formatear_fecha($fecha, $formato = 'd/m/Y') {
     if (empty($fecha) || $fecha === '0000-00-00') {
         return '';
@@ -271,6 +297,12 @@ function getCargoOptions() {
         'PRACTICANTE UNIVERSITARIO'
     ];
 }
+// ===============================================
+// 3. FUNCIONES PARA LISTAS DESPLEGABLES (OPTIONS)
+// (Consolidado de empleados.php y util.php)
+// ===============================================
+
+
 
 /** Obtiene las opciones para el campo MUNICIPIO */
 function getMunicipioOptions() {
@@ -286,6 +318,24 @@ function getMunicipioOptions() {
     ];
 }
 
+/** Obtiene las opciones para el campo ESTADO (MIGRADA DE EMPLEADOS.PHP) */
+function getEstadoOptions() {
+    // Tomado de empleados.php
+    return ['ACTIVO', 'ENVIADO PARA FIRMA', 'TERMINADO', 'PROYECTAR CONTRATO', 'ACTIVO SIN FIRMA', 'LIQUIDADO'];
+}
+
+/** Obtiene las opciones para el campo PÓLIZA (MIGRADA DE EMPLEADOS.PHP) */
+function getPolizaOptions() {
+    // Tomado de empleados.php
+    return ['TIENE', 'NO TIENE', 'NO APLICA'];
+}
+
+/** Obtiene las opciones para el campo GÉNERO (MIGRADA DE EMPLEADOS.PHP) */
+function getGeneroOptions() {
+    // Tomado de empleados.php
+    return ['MASCULINO', 'FEMENINO'];
+}
+
 /** Obtiene las opciones para el campo CONTRATO */
 function getContratoOptions() {
     return ['OPS', 'LAB'];
@@ -294,6 +344,12 @@ function getContratoOptions() {
 /** Obtiene las opciones para el campo DEPARTAMENTO */
 function getDepartamentoOptions() {
     return ['NARIÑO', 'CAUCA', 'VALLE'];
+}
+
+/** Obtiene las opciones para el campo GRUPO SANGUÍNEO (RH) (MIGRADA DE EMPLEADOS.PHP) */
+function getGrupoSanguineoOptions() {
+    // Tomado de empleados.php
+    return ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'];
 }
 
 /** Obtiene las opciones para el campo TIPO DE SERVICIO */
@@ -334,4 +390,34 @@ function getProgramaOptions() {
         'PROGRAMA NEFROPROTECCIÓN', 'LABORATORIO', 'ADMINISTRATIVO'
     ];
 }
+
+/** Obtiene la opción del SMLV BASE (MIGRADA DE EMPLEADOS.PHP) */
+function getSmlvOptions() {
+    // Tomado de empleados.php. Retorna un array con el valor de la constante SMLV
+    return [SMLV];
+}
+
+
+function validar_email_unico($email, $excluir_id = null) {
+    // NOTA: Esta función requiere la inclusión de la capa de acceso a datos (DB).
+    
+    // Ejemplo de implementación LÓGICA (Reemplazar con código real de DB):
+    /*
+    require_once 'includes/Db.php';
+    $db = new Db();
+    $query = "SELECT COUNT(id) FROM empleados WHERE email = ?";
+    $params = [$email];
+    if ($excluir_id !== null) {
+        $query .= " AND id != ?";
+        $params[] = $excluir_id;
+    }
+    $count = $db->querySingleValue($query, $params);
+    return $count == 0;
+    */
+    
+    // Dejamos la estructura, asumiendo que el desarrollador implementará la DB.
+    return true; // Temporalmente retorna true
+}
+
+
 // ... [Otras funciones de lista pueden agregarse aquí si son requeridas en otros módulos] ...
