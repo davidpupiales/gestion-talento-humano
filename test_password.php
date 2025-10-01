@@ -1,5 +1,5 @@
 <?php
-$password = 'Pasto2025*';
+$password = 'admin123';
 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
 echo 'Contraseña original: ' . $password . '<br>';

@@ -333,7 +333,7 @@ function getPolizaOptions() {
 /** Obtiene las opciones para el campo GÉNERO (MIGRADA DE EMPLEADOS.PHP) */
 function getGeneroOptions() {
     // Tomado de empleados.php
-    return ['MASCULINO', 'FEMENINO'];
+    return ['MASCULINO', 'FEMENINO', 'OTRO'];
 }
 
 /** Obtiene las opciones para el campo CONTRATO */
@@ -399,24 +399,37 @@ function getSmlvOptions() {
 
 
 function validar_email_unico($email, $excluir_id = null) {
-    // NOTA: Esta función requiere la inclusión de la capa de acceso a datos (DB).
+    // Es crucial incluir la clase Database aquí o al inicio del script.
     
-    // Ejemplo de implementación LÓGICA (Reemplazar con código real de DB):
-    /*
-    require_once 'includes/Db.php';
-    $db = new Db();
-    $query = "SELECT COUNT(id) FROM empleados WHERE email = ?";
+    $db_instance = Database::getInstance();
+    $db = $db_instance->getConnection(); // Obtener la conexión raw mysqli
+    // require_once 'config/database.php'; 
+    // $db = Database::getInstance()->getConnection();
+    
+    $query = "SELECT COUNT(id) AS count FROM empleados WHERE email = ?";
     $params = [$email];
+    $tipos = "s";
+    
     if ($excluir_id !== null) {
         $query .= " AND id != ?";
         $params[] = $excluir_id;
+        $tipos .= "i"; // 'i' para entero
     }
-    $count = $db->querySingleValue($query, $params);
-    return $count == 0;
-    */
     
-    // Dejamos la estructura, asumiendo que el desarrollador implementará la DB.
-    return true; // Temporalmente retorna true
+    $stmt = $db->prepare($query);
+    if (!$stmt) {
+        error_log("Error al preparar la validación de email: " . $db->error);
+        return false;
+    }
+    
+    $stmt->bind_param($tipos, ...$params);
+    $stmt->execute();
+    
+    $result = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    // Retorna verdadero si la cuenta es 0 (email es único), falso si ya existe
+    return $result['count'] == 0;
 }
 
 

@@ -35,7 +35,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($password, $user['password_hash'])) {
             if ($user['activo']) {
                 // Inicio de sesión exitoso, guardamos los datos en la sesión.
-                SessionManager::iniciarSesion($user);
+                SessionManager::iniciarSesion([
+                    // NOTA: Asegúrate que los nombres de las claves coincidan con los de la tabla 'users'
+                    'id'     => $user['id'],
+                    'nombre' => $user['username'], // Usamos el username como nombre de sesión
+                    'email'  => $user['email'],
+                    'rol'    => $user['rol']
+                ]);
                 header('Location: dashboard.php');
                 exit();
             } else {

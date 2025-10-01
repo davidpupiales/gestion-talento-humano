@@ -1,6 +1,11 @@
 <?php
-require_once 'includes/header.php';
+
+
+require_once 'config/database.php'; // Incluir la clase de DB
+require_once 'config/session.php'; // Incluir SessionManager
 require_once 'functions/utils.php';
+require_once 'includes/header.php';
+
 // Verificar permisos
 // ASUME QUE EXISTE SessionManager en algun 'require_once'
 if (!SessionManager::tienePermiso('gerente')) {
@@ -8,63 +13,91 @@ if (!SessionManager::tienePermiso('gerente')) {
     exit();
 }
 
+$db = Database::getInstance(); // Instancia de la DB
+$mensaje = ''; // Para mensajes de éxito
+$error = '';   // Para mensajes de error
+
 // =========================================================================
 // INICIO: LÓGICA DE PROCESAMIENTO (MIGRADA DE nuevo_empleado.php)
 // =========================================================================
 
-/**
- * NOTA IMPORTANTE: La lógica de procesamiento de formulario y de DB
- * se ha movido aquí o debe moverse a un archivo de controlador.
- * De lo contrario, el formulario dejará de funcionar al eliminar nuevo_empleado.php.
- * * Aquí va el contenido del bloque 'if ($_SERVER['REQUEST_METHOD'] === 'POST')' 
- * de nuevo_empleado.php (una vez que la DB esté lista).
- * Temporalmente se deja como placeholder para mantener la estructura.
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. Sanitización y Validación de Datos
-    // $datos_limpios = limpiar_entrada($_POST); // Usando la función de utils.php
+    // 1. Sanitización de Datos (Usando limpiar_entrada de utils.php)
+    $datos_raw = $_POST;
+    $datos_limpios = [];
+
+    // Mapeo simple de POST a columnas de la DB, usando limpieza de string por defecto
+    foreach ($datos_raw as $key => $value) {
+        // Excluir claves que no sean campos de la tabla o que sean botones de submit
+        if ($key === 'id_empleado' || $key === 'submit') continue;
+        $datos_limpios[$key] = limpiar_entrada($value);
+    }
     
-    // 2. Procesamiento (e.g., $db->crearNuevoPersonal($datos_limpios);)
-    
-    // header('Location: empleados.php?success=...');
-    // exit();
+    // 2. Validación de Unicidad
+    if (!validar_email_unico($datos_limpios['email'])) {
+        $error = "Error: El correo electrónico ya está registrado.";
+    } else {
+        // 3. Procesamiento (Insertar en la DB)
+        
+        // El nombre y apellido son obligatorios en la tabla, pero se envían como uno solo en el formulario.
+        // Asunción: El campo 'nombre_completo' en el formulario tiene ambos.
+        // Aquí se separan para coincidir con la estructura de la tabla SQL.
+        $nombre_parts = explode(' ', $datos_limpios['nombre_completo']);
+        $datos_limpios['nombre_completo'] = $nombre_parts[0];
+        $datos_limpios['apellido_completo'] = end($nombre_parts); // Última palabra como apellido
+
+        // Se asigna un código temporal si no se proporciona (debería tener una función en utils.php)
+        if (empty($datos_limpios['codigo'])) {
+            $datos_limpios['codigo'] = 'EMP-' . time(); 
+        }
+
+        // Lista de campos que NO van en el INSERT o tienen nombres diferentes
+        unset($datos_limpios['nombre_completo']); // Se usa solo para separar
+        // Añadir lógica para que el SMLV y SALARIO sean float/decimales si se requiere.
+        // Actualmente, el helper 'insert' lo trata como string.
+        
+        $nuevo_id = $db->insert('empleados', $datos_limpios);
+        
+        if ($nuevo_id) {
+            $mensaje = "¡Empleado creado con éxito! ID: " . $nuevo_id;
+            // Redireccionar para evitar re-envío del formulario
+            header("Location: empleados.php?success=" . urlencode($mensaje));
+            exit();
+        } else {
+            $error = "Error al crear el empleado. Consulte los logs de la base de datos.";
+        }
+    }
 }
 
 // =========================================================================
-// INICIO: Bloque de Conexión a Base de Datos (a ser implementado)
+// INICIO: Bloque de Carga de Datos (SELECT)
 // =========================================================================
 
-/**
- * En esta etapa, el desarrollador deberá:
- * 1. Incluir la conexión a la base de datos (e.g., 'includes/Db.php' o 'includes/db_connection.php').
- * 2. Implementar una función o lógica para consultar la tabla de empleados
- * y almacenar el resultado en la variable $empleados.
- *
- * Ejemplo de lo que se podría reemplazar:
- * require_once 'includes/Db.php';
- * $db = new Db();
- * $empleados = $db->query("SELECT * FROM empleados WHERE estado != 'eliminado' ORDER BY apellido, nombre");
- */
+// 1. Cargar los empleados desde la base de datos
+$sql_select = "SELECT * FROM empleados WHERE estado != 'LIQUIDADO' ORDER BY apellido_completo, nombre_completo";
+$empleados = $db->query($sql_select); 
 
-// *************************************************************************
-// NOTA: Temporalmente, para evitar errores mientras se implementa la DB,
-// se inicializa la variable como un array vacío. Se quita la inicialización
-// de SMLV del array eliminado.
-// *************************************************************************
-$empleados = []; 
+if ($empleados === false) {
+    // Si la consulta falla (p. ej., la tabla aún no existe o hay un error de conexión)
+    $error = "Error al cargar los datos de empleados.";
+    $empleados = [];
+}
 
 // =========================================================================
-// FIN: Bloque de Conexión a Base de Datos
+// FIN: Bloque de Carga de Datos
 // =========================================================================
-
-// -------------------------------------------------------------------------
-// Secciones del HTML se modifican para usar las funciones de utils.php
-// -------------------------------------------------------------------------
-
-// ... [Resto del código HTML] ...
 
 ?>
 <link rel="stylesheet" href="assets/css/empleados.css">
+
+<?php if ($mensaje): ?>
+    <div class="alert alert-success"><?php echo htmlspecialchars($mensaje); ?></div>
+<?php endif; ?>
+<?php if ($error): ?>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+<?php endif; ?>
+
+
 
 <div class="page-content fade-in">
     <div class="page-header">
@@ -327,10 +360,10 @@ $empleados = [];
                         <input type="tel" id="telefono" name="telefono" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label for="grupo_sanguineo">GRUPO SANGUÍNEO (RH) *</label>
-                        <select id="grupo_sanguineo" name="grupo_sanguineo" class="form-control" required>
+                        <label for="poliza">PÓLIZA</label>
+                        <select id="poliza" name="poliza" class="form-control">
                             <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones(getGrupoSanguineoOptions()); ?>
+                            <?php echo generar_opciones(getPolizaOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
@@ -341,28 +374,26 @@ $empleados = [];
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="fecha_ingreso">FECHA INGRESO</label>
-                        <input type="date" id="fecha_ingreso" name="fecha_ingreso" class="form-control">
+                        <label for="grupo_sanguineo">GRUPO SANGUÍNEO (RH) *</label>
+                        <select id="grupo_sanguineo" name="grupo_sanguineo" class="form-control" required>
+                            <option value="" disabled selected hidden>Seleccione...</option>
+                            <?php echo generar_opciones(getGrupoSanguineoOptions()); ?>
+                        </select>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="fecha_fin_zo_ingreso">FECHA FIN ZONA OCUPACIONAL INGRESO</label>
+                        <label for="fecha_fin_zo_ingreso">FECHA EXM. OCUPACIONAL INGRESO</label>
                         <input type="date" id="fecha_fin_zo_ingreso" name="fecha_fin_zo_ingreso" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label for="fecha_fin_zo_egreso">FECHA FIN ZONA OCUPACIONAL EGRESO</label>
+                        <label for="fecha_fin_zo_egreso">FECHA EXM. OCUPACIONAL EGRESO</label>
                         <input type="date" id="fecha_fin_zo_egreso" name="fecha_fin_zo_egreso" class="form-control">
                     </div>
                     <div class="form-group">
                         <label for="contacto_emergencia">CONTACTO EMERGENCIA</label>
                         <input type="text" id="contacto_emergencia" name="contacto_emergencia" class="form-control" placeholder="Nombre y Teléfono">
                     </div>
-                    <div class="form-group">
-                        <label for="poliza">PÓLIZA</label>
-                        <select id="poliza" name="poliza" class="form-control">
-                            <option value="" disabled selected hidden>Seleccione...</option>
-                            <?php echo generar_opciones(getPolizaOptions()); ?>
-                        </select>
-                    </div>
+                    
                 </div>
 
                 <div id="laboral" class="tab-content-modal grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
@@ -470,7 +501,7 @@ $empleados = [];
                         <label for="dias_trabajados">DÍAS TRABAJADOS (Auto)</label>
                         <input type="number" id="dias_trabajados" name="dias_trabajados" class="form-control" readonly placeholder="Calculado por DB">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="display: none;">
                         <label for="smlv">SMLV BASE</label>
                         <select id="smlv" name="smlv" class="form-control">
                             <?php echo generar_opciones(getSmlvOptions()); ?>
@@ -529,8 +560,12 @@ $empleados = [];
                         <input type="number" step="0.01" id="ap_pension_mes" name="ap_pension_mes" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label for="ap_arl_mes_ap_caja_mes">AP. ARL/CAJA MES</label>
-                        <input type="number" step="0.01" id="ap_arl_mes_ap_caja_mes" name="ap_arl_mes_ap_caja_mes" class="form-control">
+                        <label for="ap_arl_mes">AP. ARL MES</label>
+                        <input type="number" step="0.01" id="ap_arl_mes" name="ap_arl_mes" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="ap_caja_mes">AP. CAJA MES</label>
+                        <input type="number" step="0.01" id="ap_caja_mes" name="ap_caja_mes" class="form-control">
                     </div>
                     <div class="form-group">
                         <label for="ap_sena_mes">AP. SENA MES</label>
@@ -573,8 +608,12 @@ $empleados = [];
                         <input type="date" id="vigencia_manejo_dolor_cuidados_paliativos" name="vigencia_manejo_dolor_cuidados_paliativos" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label for="vigencia_humanizacion_toma_muestras">HUMANIZACIÓN TOMA DE MUESTRAS (Vigencia)</label>
-                        <input type="date" id="vigencia_humanizacion_toma_muestras" name="vigencia_humanizacion_toma_muestras" class="form-control">
+                        <label for="vigencia_humanizacion">CURSO HUMANIZACIÓN (Vigencia)</label>
+                        <input type="date" id="vigencia_humanizacion" name="vigencia_humanizacion" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="vigencia_toma_muestras_lab">CURSO DE TOMA DE MUESTRAS LABORATORIO (Vigencia)</label>
+                        <input type="date" id="vigencia_toma_muestras_lab" name="vigencia_toma_muestras_lab" class="form-control">
                     </div>
                     <div class="form-group">
                         <label for="vigencia_manejo_duelo">MANEJO DEL DUELO (Vigencia)</label>
@@ -607,6 +646,7 @@ $empleados = [];
     </div>
 </div>
 <!-- fin nuevo empleado -->
+
 <script src="assets/js/empleados.js"></script>
 
 <script>

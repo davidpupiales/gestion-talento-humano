@@ -22,7 +22,7 @@ class SessionManager {
     
     public static function iniciarSesion($usuario) {
         $_SESSION['usuario_id'] = $usuario['id'];
-        $_SESSION['usuario_nombre'] = $usuario['nombre'];
+        $_SESSION['usuario_nombre'] = $usuario['username'];
         $_SESSION['usuario_email'] = $usuario['email'];
         $_SESSION['usuario_rol'] = $usuario['rol'];
         $_SESSION['ultimo_acceso'] = time();
