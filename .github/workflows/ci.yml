@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next app
+        run: npm run build
+
+      - name: PHP lint (check syntax)
+        run: |
+          set -e
+          # Find php files excluding node_modules and .next
+          find . -type f -name "*.php" -not -path "./node_modules/*" -not -path "./.next/*" -print0 | xargs -0 -n1 -P4 php -l
+
+      - name: List DB scripts
+        run: |
+          echo "SQL scripts in bd/:" && ls -la bd || true

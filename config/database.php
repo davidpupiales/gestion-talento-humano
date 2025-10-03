@@ -126,9 +126,15 @@ class Database {
         // Función simple de detección de tipos (i: int, d: float/double, s: string)
         $tipos = str_repeat('s', count($valores)); 
 
-        // Uso de referencias para bind_param
-        $params = array_merge([$tipos], $this->refValues($valores));
-        
+        // Preparar parámetros pasando referencias correctamente (necesario para mysqli_stmt::bind_param)
+        $params = [];
+        $params[] = $tipos;
+        for ($i = 0; $i < count($valores); $i++) {
+            // crear referencia a cada elemento
+            $params[] = & $valores[$i];
+        }
+
+        // Llamada a bind_param con parámetros por referencia
         call_user_func_array([$stmt, 'bind_param'], $params);
 
         if ($stmt->execute()) {

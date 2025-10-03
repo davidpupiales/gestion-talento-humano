@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS - Sistema de Gestión de Recursos Humanos</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/header_styles.css">
+    <link rel="stylesheet" href="assets/css/empleados.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="main-container">
+        <nav class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo">
+                    <i class="fas fa-users-cog"></i> HRMS
+                </div>
+                <div class="logo-subtitle">Recursos Humanos</div>
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <ul>
+                        <li class="nav-item">
+                            <a href="dashboard.php" class="nav-link ">
+                                <i class="fas fa-chart-line nav-icon"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-section">
+                    <div class="nav-section-title">Gestión</div>
+                    <ul>
+                                                <li class="nav-item">
+                            <a href="empleados.php" class="nav-link active">
+                                <i class="fas fa-users nav-icon"></i>
+                                Empleados
+                            </a>
+                        </li>
+                                                
+                        <li class="nav-item">
+                            <a href="nomina.php" class="nav-link ">
+                                <i class="fas fa-money-bill-wave nav-icon"></i>
+                                Nómina
+                            </a>
+                        </li>
+                        
+                                                <li class="nav-item">
+                            <a href="reclutamiento.php" class="nav-link ">
+                                <i class="fas fa-user-plus nav-icon"></i>
+                                Reclutamiento
+                            </a>
+                        </li>
+                                                
+                        <li class="nav-item">
+                            <a href="capacitacion.php" class="nav-link ">
+                                <i class="fas fa-graduation-cap nav-icon"></i>
+                                Capacitación
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-section">
+                    <div class="nav-section-title">Servicios</div>
+                    <ul>
+                        <li class="nav-item">
+                            <a href="permisos.php" class="nav-link ">
+                                <i class="fas fa-calendar-alt nav-icon"></i>
+                                Permisos
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a href="documentos.php" class="nav-link ">
+                                <i class="fas fa-file-alt nav-icon"></i>
+                                Documentos
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a href="muro.php" class="nav-link ">
+                                <i class="fas fa-comments nav-icon"></i>
+                                Muro Empresarial
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                                <li class="nav-section">
+                    <div class="nav-section-title">Análisis</div>
+                    <ul>
+                        <li class="nav-item">
+                            <a href="reportes.php" class="nav-link ">
+                                <i class="fas fa-chart-bar nav-icon"></i>
+                                Reportes
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                                <li class="nav-section">
+                    <div class="nav-section-title">Usuario</div>
+                    <ul>
+                        <li class="nav-item">
+                            <a href="perfil.php" class="nav-link ">
+                                <i class="fas fa-user nav-icon"></i>
+                                Mi Perfil
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+        
+        <main class="content">
+            <header class="header">
+                <div class="header-title">
+                    <i class="fas fa-users"></i>
+                    Gestión de Empleados                </div>
+                
+                <div class="header-actions">
+                    <div class="notifications-panel">
+                        <button class="notification-trigger">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </button>
+                        
+                        <div class="notifications-dropdown">
+                            <div class="notification-item unread">
+                                <div class="notification-content">
+                                    <div class="notification-icon" style="background: var(--accent-blue);"></div>
+                                    <div>
+                                        <div class="notification-title">Nuevo documento para firmar</div>
+                                        <div class="notification-meta">Política de Seguridad - Hace 2 horas</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="notification-item unread">
+                                <div class="notification-content">
+                                    <div class="notification-icon" style="background: var(--accent-green);"></div>
+                                    <div>
+                                        <div class="notification-title">Permiso aprobado</div>
+                                        <div class="notification-meta">Vacaciones del 20-25 Feb - Hace 4 horas</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="notification-item">
+                                <div class="notification-content">
+                                    <div class="notification-icon" style="background: var(--accent-orange);"></div>
+                                    <div>
+                                        <div class="notification-title">Capacitación programada</div>
+                                        <div class="notification-meta">Seguridad Laboral - Mañana 9:00 AM</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="user-menu">
+                        <span class="user-name"></span>
+                        <div class="user-avatar">
+                                                    </div>
+                        <span class="user-role">
+                            Administrador                        </span>
+                    </div>
+                    
+                    <a href="logout.php" class="btn btn-secondary" title="Cerrar Sesión">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
+            </header>
+
+            <div class="page-container"><br />
+<b>Warning</b>:  Cannot modify header information - headers already sent by (output started at C:\xampp\htdocs\gestion-talento-humano\includes\header.php:108) in <b>C:\xampp\htdocs\gestion-talento-humano\empleados.php</b> on line <b>164</b><br />

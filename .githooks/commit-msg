@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Simple commit message validator following the template in .github/commit_message_template.txt
+MSG_FILE="$1"
+MSG=$(cat "$MSG_FILE")
+
+# Regex: tipo(optional-scope): mensaje
+if ! echo "$MSG" | grep -Eq "^(feat|fix|docs|chore|refactor|perf)(\([a-z0-9\-_/]+\))?: .{1,72}"; then
+  echo "ERROR: Commit message does not follow '<type>(scope): short summary' format."
+  echo "See .github/commit_message_template.txt"
+  exit 1
+fi
+
+exit 0

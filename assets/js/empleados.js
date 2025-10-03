@@ -59,15 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Manejar envío del formulario
+    // Manejar envío del formulario: dejar que el formulario haga POST al servidor
+    // excepto cuando la validación falla.
     if (form) {
         form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            if (form.checkValidity()) {
-                mostrarToast('Datos de empleado enviados para procesamiento...', 'success');
-                // Aquí se realizaría el envío real (AJAX o POST a PHP)
-            } else {
+            if (!form.checkValidity()) {
+                e.preventDefault();
                 mostrarToast('Por favor complete todos los campos obligatorios.', 'error');
+            } else {
+                // Mostrar notificación al usuario; permitir el envío normal (POST)
+                mostrarToast('Enviando datos al servidor...', 'info');
+                // Si en el futuro queremos AJAX, podemos prevenir el envío aquí.
             }
         });
     }
@@ -117,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Secciones Pagos
     const inputTipoContrato = document.querySelector('select[name="contrato"]');
     const inputMesada = document.querySelector('input[name="mesada"]');
-    const outputAuxTransporte = document.querySelector('input[name="aux_transporte"]');
+    const outputAuxTransporte = document.querySelector('input[name="auxilio_transporte"]');
     
     // Secciones Aportes
     const outputTasaArl = document.querySelector('input[name="tasa_arl"]');
@@ -157,9 +159,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Lógica: Contrato LAB AND Mesada < (2 * SMLV) AND Mesada > 0
         if (contrato === 'LAB' && mesada < (2 * SMLV_JS) && mesada > 0) {
-            outputAuxTransporte.value = 200000.00; // Valor fijo
+            if (outputAuxTransporte) outputAuxTransporte.value = 200000.00; // Valor fijo
         } else {
-            outputAuxTransporte.value = 0.00;
+            if (outputAuxTransporte) outputAuxTransporte.value = 0.00;
         }
         // Nota: Las funciones calcularPresMensual y PresAnual deben ir aquí
     }
@@ -242,3 +244,73 @@ document.addEventListener('DOMContentLoaded', () => {
     activarPestana('laboral'); // Asegurar la pestaña inicial
     inicializarCalculos();
 });
+        // ===============================================
+        // Funciones CRUD para botones (ver, editar, eliminar)
+        // ===============================================
+        function verEmpleado(id) {
+            fetch(`empleados.php?get=${id}`)
+                .then(r => { if (!r.ok) throw new Error('Empleado no encontrado'); return r.json(); })
+                .then(data => {
+                    // Rellenar el modal en modo solo lectura
+                    document.getElementById('modal-titulo').textContent = 'Ver Empleado';
+                    const form = document.getElementById('form-nuevo-empleado');
+                    if (!form) return;
+                    // Llenar campos básicos; proteger campos que no existan
+                    for (const k in data) {
+                        const el = form.querySelector(`[name="${k}"]`);
+                        if (el) el.value = data[k];
+                    }
+                    // Abrir modal
+                    if (window.abrirModalEmpleado) window.abrirModalEmpleado(id);
+                    // Desactivar inputs para solo lectura
+                    form.querySelectorAll('input,select,textarea').forEach(i => i.setAttribute('disabled','disabled'));
+                }).catch(err => {
+                    console.error(err);
+                    alert('No se pudo cargar la información del empleado.');
+                });
+        }
+
+        function editarEmpleado(id) {
+            fetch(`empleados.php?get=${id}`)
+                .then(r => { if (!r.ok) throw new Error('Empleado no encontrado'); return r.json(); })
+                .then(data => {
+                    document.getElementById('modal-titulo').textContent = 'Editar Empleado';
+                    const form = document.getElementById('form-nuevo-empleado');
+                    if (!form) return;
+                    for (const k in data) {
+                        const el = form.querySelector(`[name="${k}"]`);
+                        if (el) {
+                            el.removeAttribute('disabled');
+                            el.value = data[k];
+                        }
+                    }
+                    // Añadir un campo hidden id para el update
+                    let hidden = form.querySelector('input[name="id"]');
+                    if (!hidden) {
+                        hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.name = 'id'; hidden.value = id; form.appendChild(hidden);
+                    } else { hidden.value = id; }
+                    // Asegurar que al enviar el formulario incluya _action=update
+                    let actionInput = form.querySelector('input[name="_action"]');
+                    if (!actionInput) { actionInput = document.createElement('input'); actionInput.type='hidden'; actionInput.name='_action'; actionInput.value='update'; form.appendChild(actionInput); }
+                    if (window.abrirModalEmpleado) window.abrirModalEmpleado(id);
+                }).catch(err => { console.error(err); alert('No se pudo cargar la información para editar.'); });
+        }
+
+        function eliminarEmpleado(id) {
+            if (!confirm('¿Seguro que desea eliminar este empleado? Esta acción no se puede deshacer.')) return;
+            // Enviar POST con _action=delete
+            fetch('empleados.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `_action=delete&id=${encodeURIComponent(id)}`
+            }).then(r => r.json()).then(resp => {
+                if (resp && resp.success) {
+                    alert('Empleado eliminado');
+                    // Recargar la página para actualizar la lista
+                    window.location.reload();
+                } else {
+                    alert('No se pudo eliminar el empleado');
+                    console.error(resp);
+                }
+            }).catch(err => { console.error(err); alert('Error al comunicarse con el servidor'); });
+        }

@@ -1,0 +1,19 @@
+<tipo>(ámbito): resumen corto
+
+Descripción (opcional):
+- Qué y por qué se cambió (1-2 líneas)
+
+Referencias:
+- Issue/ID: #123  (si aplica)
+- Archivos principales modificados: config/database.php, app/..., etc.
+
+Tipos sugeridos:
+- feat: nueva funcionalidad
+- fix: corrección de bug
+- docs: documentación
+- chore: tareas menores / tooling
+- refactor: reestructuración sin cambio de comportamiento
+- perf: mejoras de rendimiento
+
+Ejemplo:
+feat(auth): añadir verificación de token CSRF en login.php
