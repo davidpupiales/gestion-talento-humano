@@ -196,8 +196,16 @@ function calcular_dias_trabajados($fecha_inicio, $fecha_fin) {
  * @return float
  */
 function calcular_aux_transporte($tipo_contrato, $mesada) {
-    // Aplicar lógica: Contrato LAB AND Mesada < (2 * SMLV) AND Mesada no nula/cero
-    if (limpiar_entrada($tipo_contrato) === 'LAB' && (float)$mesada < (2 * SMLV) && (float)$mesada > 0) {
+    // Normalizar entradas: tipo de contrato en mayúsculas y mesada como float
+    $tipo = strtoupper(trim(limpiar_entrada($tipo_contrato)));
+    // Usar limpiar_entrada con tipo 'float' para aceptar comas y convertir correctamente
+    $mes = 0.0;
+    if ($mesada !== null && $mesada !== '') {
+        $mes = (float) limpiar_entrada($mesada, 'float');
+    }
+
+    // Aplicar lógica: Contrato LAB AND Mesada < (2 * SMLV) AND Mesada > 0
+    if ($tipo === 'LAB' && $mes > 0 && $mes < (2 * SMLV)) {
         return 200000.00; // Valor del auxilio de transporte (debe ser parametrizable)
     }
     return 0.00;
@@ -248,7 +256,38 @@ function calcular_pres_mensual($datos) {
                      
     $pro_anual_mensual = $provision_anual / 12;
     
-    return $mesada + $extras_legales + $aux_transporte + $aportes_mensuales + $pro_anual_mensual;
+    // Calcular valor hora ordinaria basado en 220 horas/mes
+    $horas_base = 220.0;
+    $valor_hora_ordinaria = $horas_base > 0 ? ($mesada / $horas_base) : 0.0;
+
+    // Determinar horas trabajadas a usar para prorrateo:
+    // Preferir campo explícito 'horas_ordinarias' (o 'horas_trabajadas') enviado desde el formulario.
+    $horas_trabajadas = null;
+    if (isset($datos['horas_ordinarias']) && is_numeric($datos['horas_ordinarias'])) {
+        $horas_trabajadas = (float)$datos['horas_ordinarias'];
+    } elseif (isset($datos['horas_trabajadas']) && is_numeric($datos['horas_trabajadas'])) {
+        $horas_trabajadas = (float)$datos['horas_trabajadas'];
+    } elseif (isset($datos['dias_trabajados']) && is_numeric($datos['dias_trabajados'])) {
+        // Sólo convertir días a horas si el valor parece razonable (1..31)
+        $dias = (int)$datos['dias_trabajados'];
+        if ($dias >= 1 && $dias <= 31) {
+            $horas_trabajadas = ($dias / 30.0) * $horas_base;
+        }
+    }
+    // Si no hay info válida, asumimos jornada completa
+    if ($horas_trabajadas === null) $horas_trabajadas = $horas_base;
+    // Evitar horas extraordinariamente grandes; clamp a un máximo razonable (ej. 3 meses = 660h)
+    $max_horas = $horas_base * 3;
+    if ($horas_trabajadas < 0) $horas_trabajadas = 0.0;
+    if ($horas_trabajadas > $max_horas) $horas_trabajadas = $horas_base;
+
+    // Valor por horas trabajadas (prorrateo de mesada si aplica)
+    $valor_por_horas_trabajadas = $valor_hora_ordinaria * $horas_trabajadas;
+
+    // Presupuesto mensual = mesada prorrateada (valor_por_horas_trabajadas) + auxilio + extras + aportes + provision anual/12
+    $pres_mensual = $valor_por_horas_trabajadas + $aux_transporte + $extras_legales + $aportes_mensuales + $pro_anual_mensual;
+    // Redondear a 2 decimales
+    return round($pres_mensual, 2);
 }
 
 
@@ -395,6 +434,27 @@ function getProgramaOptions() {
 function getSmlvOptions() {
     // Tomado de empleados.php. Retorna un array con el valor de la constante SMLV
     return [SMLV];
+}
+
+/**
+ * Valida que una cédula sea única en la tabla empleados.
+ * Si se proporciona $exceptId, excluye ese id (útil para updates).
+ * @param string $cedula
+ * @param int|null $exceptId
+ * @return bool true si la cédula NO existe; false si ya está registrada
+ */
+function validar_cedula_unica($cedula, $exceptId = null) {
+    $db = Database::getInstance();
+    $conn = $db->getConnection();
+    $ced = $conn->real_escape_string($cedula);
+    $sql = "SELECT id FROM empleados WHERE cedula = '" . $ced . "'";
+    if ($exceptId) {
+        $sql .= " AND id != " . (int)$exceptId;
+    }
+    $sql .= " LIMIT 1";
+    $res = $conn->query($sql);
+    if ($res && $res->num_rows > 0) return false;
+    return true;
 }
 
 

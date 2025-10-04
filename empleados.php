@@ -8,6 +8,87 @@ require_once 'functions/utils.php';
 // Inicializar DB y manejar endpoints AJAX ANTES de incluir cualquier HTML
 $db = Database::getInstance(); // Instancia de la DB (necesaria para endpoints AJAX)
 
+// Activar buffering temprano para poder limpiar salida accidental antes de responder JSON
+if (!ob_get_level()) ob_start();
+
+// --- Manejo TEMPRANO de CREACIÓN por POST (intercepta peticiones AJAX antes de que header.php imprima HTML)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['_action'])) {
+    $datos_raw = $_POST;
+    $datos_limpios = [];
+    foreach ($datos_raw as $k => $v) {
+        if ($k === 'id_empleado' || $k === 'submit') continue;
+        $datos_limpios[$k] = limpiar_entrada($v);
+    }
+
+    // Validaciones rápidas
+    if (isset($datos_limpios['email']) && $datos_limpios['email'] !== '' && !validar_email_unico($datos_limpios['email'])) {
+        if ((isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false)) {
+            if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['error'=>'El correo electrónico ya está registrado.']); exit();
+        }
+        $error = 'Error: El correo electrónico ya está registrado.';
+    }
+    if (empty($error) && isset($datos_limpios['cedula']) && $datos_limpios['cedula'] !== '' && !validar_cedula_unica($datos_limpios['cedula'])) {
+        if ((isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false)) {
+            if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['error'=>'La cédula ya está registrada.']); exit();
+        }
+        $error = 'Error: La cédula ya está registrada.';
+    }
+
+    if (empty($error)) {
+        // Construir insert_data (mismos campos que el flujo principal)
+        $insert_data = [];
+        $allowed = [
+            'codigo','cedula','nombre_completo','email','telefono','direccion','fecha_nacimiento','genero','grupo_sanguineo',
+            'tipo_contrato','estado','fecha_ingreso','fecha_retiro','sede','cargo','nivel','calidad','programa','area',
+            'departamento','municipio','servicio','nivel_riesgo','smlv','salario','valor_por_evento','mesada','pres_mensual','pres_anual','extras_legales',
+            'auxilio_transporte','banco','tipo_cuenta','numero_cuenta','eps','afp','arl','caja_compensacion','poliza',
+        ];
+        foreach ($allowed as $col) {
+            if (isset($datos_limpios[$col]) && $datos_limpios[$col] !== '') $insert_data[$col] = $datos_limpios[$col];
+        }
+        // aliases
+        if (isset($datos_limpios['num_cuenta']) && $datos_limpios['num_cuenta'] !== '') $insert_data['numero_cuenta'] = $datos_limpios['num_cuenta'];
+        if (isset($datos_limpios['entidad_bancaria']) && $datos_limpios['entidad_bancaria'] !== '') $insert_data['banco'] = $datos_limpios['entidad_bancaria'];
+        if (isset($datos_limpios['aux_transporte']) && $datos_limpios['aux_transporte'] !== '') $insert_data['auxilio_transporte'] = $datos_limpios['aux_transporte'];
+
+        // nombre/apellido
+        $nombre_completo = isset($datos_limpios['nombre_completo']) ? trim($datos_limpios['nombre_completo']) : '';
+        if ($nombre_completo !== '') {
+            $parts = preg_split('/\s+/', $nombre_completo);
+            $apellido_completo = count($parts) > 1 ? end($parts) : $nombre_completo;
+            $insert_data['nombre_completo'] = $nombre_completo;
+            $insert_data['apellido_completo'] = $apellido_completo;
+        }
+
+        // defaults y tipos
+        if (empty($insert_data['tipo_contrato'])) $insert_data['tipo_contrato'] = 'LAB';
+        if (empty($insert_data['estado'])) $insert_data['estado'] = 'ACTIVO';
+        if (empty($insert_data['fecha_ingreso'])) $insert_data['fecha_ingreso'] = date('Y-m-d');
+    if (isset($insert_data['smlv'])) $insert_data['smlv'] = (float)str_replace(',', '.', $insert_data['smlv']);
+    if (isset($insert_data['salario'])) $insert_data['salario'] = (float)str_replace(',', '.', $insert_data['salario']);
+    if (isset($insert_data['valor_por_evento'])) $insert_data['valor_por_evento'] = (float)str_replace(',', '.', $insert_data['valor_por_evento']);
+    if (isset($insert_data['mesada'])) $insert_data['mesada'] = (float)str_replace(',', '.', $insert_data['mesada']);
+
+        $nuevo_id = $db->insert('empleados', $insert_data);
+        if ($nuevo_id) {
+            $mensaje = "¡Empleado creado con éxito! ID: " . $nuevo_id;
+            $isAjax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false);
+            if ($isAjax) { if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['success'=>true,'id'=>$nuevo_id,'message'=>$mensaje]); exit(); }
+            if (!headers_sent()) { header("Location: empleados.php?success=" . urlencode($mensaje)); exit(); }
+        } else {
+            $conn = $db->getConnection(); $dbErr = ($conn instanceof mysqli) ? $conn->error : '';
+            if ($dbErr && (stripos($dbErr,'Duplicate entry')!==false || ($conn instanceof mysqli && $conn->errno===1062))) {
+                $friendly = stripos($dbErr,'cedula')!==false ? 'Error: La cédula ya está registrada.' : (stripos($dbErr,'email')!==false ? 'Error: El correo electrónico ya está registrado.' : 'Error: Ya existe un registro con valores duplicados.');
+                if ((isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false)) { if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['error'=>$friendly]); exit(); }
+                $error = $friendly;
+            } else {
+                $error = 'Error al crear el empleado.' . ($dbErr ? ' DB: '.$dbErr : '');
+            }
+        }
+    }
+    // Si llegamos aquí y no fue AJAX, dejamos que el flujo normal continúe y muestre $error/estado
+}
+
 // --- Endpoints AJAX ligeros: GET ?get=<id> -> devuelve JSON del empleado
 if (isset($_GET['get']) && is_numeric($_GET['get'])) {
     $id = (int) $_GET['get'];
@@ -44,15 +125,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_action'])) {
         if (!SessionManager::tienePermiso('gerente')) {
             header('HTTP/1.1 403 Forbidden'); echo json_encode(['error'=>'Sin permiso']); exit();
         }
-        $allowed = ['codigo','cedula','email','telefono','direccion','fecha_nacimiento','genero','grupo_sanguineo','tipo_contrato','estado','fecha_ingreso','fecha_retiro','sede','cargo','nivel','departamento','municipio','nivel_riesgo','mesada','salario','auxilio_transporte','banco','tipo_cuenta','numero_cuenta'];
+        // Aceptar alias usados en el formulario: num_cuenta -> numero_cuenta, entidad_bancaria -> banco
+    $allowed = ['codigo','cedula','email','telefono','direccion','fecha_nacimiento','genero','grupo_sanguineo','tipo_contrato','estado','fecha_ingreso','fecha_retiro','sede','cargo','nivel','departamento','municipio','nivel_riesgo','valor_por_evento','mesada','salario','auxilio_transporte','banco','tipo_cuenta','numero_cuenta','num_cuenta','entidad_bancaria'];
         $updates = [];
         $types = '';
         $values = [];
         foreach ($allowed as $col) {
             if (isset($_POST[$col])) {
-                $updates[] = "$col = ?";
-                $values[] = $_POST[$col];
+                // Mapear alias a los nombres reales de columna en la DB
+                if ($col === 'num_cuenta') {
+                    $updates[] = "numero_cuenta = ?";
+                    $values[] = $_POST[$col];
+                } elseif ($col === 'entidad_bancaria') {
+                    $updates[] = "banco = ?";
+                    $values[] = $_POST[$col];
+                } else {
+                    $updates[] = "$col = ?";
+                    $values[] = $_POST[$col];
+                }
                 $types .= 's';
+            }
+        }
+        // Validar unicidad de email si viene en el payload
+        if (isset($_POST['email']) && $_POST['email'] !== '') {
+            require_once 'functions/utils.php';
+            if (!validar_email_unico($_POST['email'], $id)) {
+                header('HTTP/1.1 400 Bad Request');
+                echo json_encode(['error' => 'El email ya pertenece a otro empleado']);
+                exit();
             }
         }
         if (!empty($updates)) {
@@ -66,11 +166,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_action'])) {
             array_unshift($refs, $types);
             call_user_func_array([$stmt, 'bind_param'], $refs);
             $ok = $stmt->execute();
-            if ($ok) { echo json_encode(['success'=>true]); } else { header('HTTP/1.1 500 Internal Server Error'); echo json_encode(['error'=>$conn->error]); }
+            if ($ok) {
+                echo json_encode(['success'=>true]);
+            } else {
+                // Detect duplicate key error (1062) and return user-friendly JSON error
+                $dbErr = $conn->error ?? '';
+                $errno = $conn->errno ?? 0;
+                if ($errno === 1062 || stripos($dbErr, 'Duplicate entry') !== false) {
+                    $friendly = 'Ya existe un registro con valores duplicados';
+                    if (stripos($dbErr, 'cedula') !== false) $friendly = 'La c\u00e9dula ya est\u00e1 registrada.';
+                    if (stripos($dbErr, 'email') !== false) $friendly = 'El correo electr\u00f3nico ya est\u00e1 registrado.';
+                    if (ob_get_level()) ob_clean();
+                    header('HTTP/1.1 400 Bad Request');
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => $friendly]);
+                } else {
+                    if (ob_get_level()) ob_clean();
+                    header('HTTP/1.1 500 Internal Server Error');
+                    header('Content-Type: application/json');
+                    echo json_encode(['error'=>$dbErr]);
+                }
+            }
             exit();
         }
         echo json_encode(['error'=>'No fields to update']); exit();
     }
+    $datos_limpios = [];
+    foreach ($datos_raw as $k => $v) {
+        if ($k === 'id_empleado' || $k === 'submit') continue;
+        $datos_limpios[$k] = limpiar_entrada($v);
+    }
+
+    // Validaciones
+    if (isset($datos_limpios['email']) && $datos_limpios['email'] !== '') {
+        if (!validar_email_unico($datos_limpios['email'])) {
+            if ((isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false)) {
+                if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['error'=>'El correo electrónico ya está registrado.']); exit();
+            }
+            $error = 'Error: El correo electrónico ya está registrado.';
+        }
+    }
+    if (empty($error) && isset($datos_limpios['cedula']) && $datos_limpios['cedula'] !== '') {
+        if (!validar_cedula_unica($datos_limpios['cedula'])) {
+            if ((isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false)) {
+                if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['error'=>'La cédula ya está registrada.']); exit();
+            }
+            $error = 'Error: La cédula ya está registrada.';
+        }
+    }
+
+    if (empty($error)) {
+        $insert_data = [];
+    $allowed = ['codigo','cedula','nombre_completo','apellido_completo','email','telefono','direccion','fecha_nacimiento','genero','grupo_sanguineo','tipo_contrato','estado','fecha_ingreso','fecha_retiro','sede','cargo','nivel','departamento','municipio','nivel_riesgo','valor_por_evento','mesada','salario','auxilio_transporte','banco','tipo_cuenta','numero_cuenta'];
+        foreach ($allowed as $col) {
+            if (isset($datos_limpios[$col]) && $datos_limpios[$col] !== '') $insert_data[$col] = $datos_limpios[$col];
+        }
+        // Map aliases (form uses variants in different templates)
+        if (isset($datos_limpios['num_cuenta']) && $datos_limpios['num_cuenta'] !== '') $insert_data['numero_cuenta'] = $datos_limpios['num_cuenta'];
+        if (isset($datos_limpios['entidad_bancaria']) && $datos_limpios['entidad_bancaria'] !== '') $insert_data['banco'] = $datos_limpios['entidad_bancaria'];
+        if (isset($datos_limpios['aux_transporte']) && $datos_limpios['aux_transporte'] !== '') $insert_data['auxilio_transporte'] = $datos_limpios['aux_transporte'];
+
+        // Defaults
+        if (empty($insert_data['tipo_contrato'])) $insert_data['tipo_contrato'] = 'LAB';
+        if (empty($insert_data['estado'])) $insert_data['estado'] = 'ACTIVO';
+        if (empty($insert_data['fecha_ingreso'])) $insert_data['fecha_ingreso'] = date('Y-m-d');
+
+        $nuevo_id = $db->insert('empleados', $insert_data);
+        if ($nuevo_id) {
+            $mensaje = "¡Empleado creado con éxito! ID: " . $nuevo_id;
+            // Responder JSON si es AJAX
+            $isAjax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false);
+            if ($isAjax) { if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['success'=>true,'id'=>$nuevo_id,'message'=>$mensaje]); exit(); }
+            // No AJAX: dejar que el flujo normal continúe y el include/header.php se muestre
+        } else {
+            $conn = $db->getConnection(); $dbErr = ($conn instanceof mysqli) ? $conn->error : '';
+            if ($dbErr && (stripos($dbErr,'Duplicate entry')!==false || ($conn instanceof mysqli && $conn->errno===1062))) {
+                $friendly = stripos($dbErr,'cedula')!==false ? 'Error: La cédula ya está registrada.' : (stripos($dbErr,'email')!==false ? 'Error: El correo electrónico ya está registrado.' : 'Error: Ya existe un registro con valores duplicados.');
+                if ((isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false)) { if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['error'=>$friendly]); exit(); }
+                $error = $friendly;
+            } else {
+                $error = 'Error al crear el empleado.' . ($dbErr ? ' DB: '.$dbErr : '');
+            }
+        }
+    }
+    // Si no fue AJAX y hubo error, no hacemos exit: la página mostrará $error más abajo.
 }
 
 // Evitar "headers already sent" durante desarrollo: activar output buffering
@@ -130,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_action'])) {
             header('HTTP/1.1 403 Forbidden'); echo json_encode(['error'=>'Sin permiso']); exit();
         }
         // Construir array de campos permitidos para update
-        $allowed = ['codigo','cedula','email','telefono','direccion','fecha_nacimiento','genero','grupo_sanguineo','tipo_contrato','estado','fecha_ingreso','fecha_retiro','sede','cargo','nivel','departamento','municipio','nivel_riesgo','mesada','salario','auxilio_transporte','banco','tipo_cuenta','numero_cuenta'];
+    $allowed = ['codigo','cedula','email','telefono','direccion','fecha_nacimiento','genero','grupo_sanguineo','tipo_contrato','estado','fecha_ingreso','fecha_retiro','sede','cargo','nivel','departamento','municipio','nivel_riesgo','valor_por_evento','mesada','salario','auxilio_transporte','banco','tipo_cuenta','numero_cuenta'];
         $updates = [];
         $types = '';
         $values = [];
@@ -153,7 +332,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_action'])) {
             array_unshift($refs, $types);
             call_user_func_array([$stmt, 'bind_param'], $refs);
             $ok = $stmt->execute();
-            if ($ok) { echo json_encode(['success'=>true]); } else { header('HTTP/1.1 500 Internal Server Error'); echo json_encode(['error'=>$conn->error]); }
+            if ($ok) {
+                echo json_encode(['success'=>true]);
+            } else {
+                $dbErr = $conn->error ?? '';
+                $errno = $conn->errno ?? 0;
+                if ($errno === 1062 || stripos($dbErr, 'Duplicate entry') !== false) {
+                    $friendly = 'Ya existe un registro con valores duplicados';
+                    if (stripos($dbErr, 'cedula') !== false) $friendly = 'La cédula ya está registrada.';
+                    if (stripos($dbErr, 'email') !== false) $friendly = 'El correo electrónico ya está registrado.';
+                    if (ob_get_level()) ob_clean();
+                    header('HTTP/1.1 400 Bad Request');
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => $friendly]);
+                } else {
+                    if (ob_get_level()) ob_clean();
+                    header('HTTP/1.1 500 Internal Server Error');
+                    header('Content-Type: application/json');
+                    echo json_encode(['error'=>$dbErr]);
+                }
+            }
             exit();
         }
         echo json_encode(['error'=>'No fields to update']); exit();
@@ -176,10 +374,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $datos_limpios[$key] = limpiar_entrada($value);
     }
     
-    // 2. Validación de Unicidad
-    if (!validar_email_unico($datos_limpios['email'])) {
-        $error = "Error: El correo electrónico ya está registrado.";
-    } else {
+    // 2. Validación de Unicidad (email + cédula)
+    // Comprobar email si viene
+    if (isset($datos_limpios['email']) && $datos_limpios['email'] !== '') {
+        if (!validar_email_unico($datos_limpios['email'])) {
+            $error = "Error: El correo electrónico ya está registrado.";
+        }
+    }
+    // Comprobar cédula si viene
+    if (empty($error) && isset($datos_limpios['cedula']) && $datos_limpios['cedula'] !== '') {
+        if (!validar_cedula_unica($datos_limpios['cedula'])) {
+            $error = "Error: La cédula ya está registrada.";
+        }
+    }
+
+    // Si hay error de validación, dejamos $error y no intentamos el INSERT; el formulario
+    // se reabrirá en el cliente con el mismo POST para permitir la corrección.
+    if (empty($error)) {
         // 3. Procesamiento (Insertar en la DB)
         
         // El formulario envía 'nombre_completo' - guardaremos en las columnas
@@ -203,7 +414,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $allowed = [
             'codigo','cedula','email','telefono','direccion','fecha_nacimiento','genero','grupo_sanguineo',
             'tipo_contrato','estado','fecha_ingreso','fecha_retiro','sede','cargo','nivel','calidad','programa','area',
-            'departamento','municipio','servicio','nivel_riesgo','smlv','salario','mesada','pres_mensual','pres_anual','extras_legales',
+            'departamento','municipio','servicio','nivel_riesgo','smlv','salario','valor_por_evento','mesada','pres_mensual','pres_anual','extras_legales',
             'auxilio_transporte','banco','tipo_cuenta','numero_cuenta','eps','afp','arl','caja_compensacion','poliza',
             'certificado_manipulacion_alimentos','certificado_rcp','certificado_altura','certificado_bioseguridad',
             'fecha_fin_zo_ingreso','fecha_fin_zo_egreso','contacto_emergencia','fecha_vencimiento_registro',
@@ -235,9 +446,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($apellido_completo !== '') $insert_data['apellido_completo'] = $apellido_completo;
 
         // Saneamiento de tipos básicos
-        if (isset($insert_data['smlv'])) $insert_data['smlv'] = (float)str_replace(',', '.', $insert_data['smlv']);
-        if (isset($insert_data['salario'])) $insert_data['salario'] = (float)str_replace(',', '.', $insert_data['salario']);
-        if (isset($insert_data['mesada'])) $insert_data['mesada'] = (float)str_replace(',', '.', $insert_data['mesada']);
+    if (isset($insert_data['smlv'])) $insert_data['smlv'] = (float)str_replace(',', '.', $insert_data['smlv']);
+    if (isset($insert_data['salario'])) $insert_data['salario'] = (float)str_replace(',', '.', $insert_data['salario']);
+    if (isset($insert_data['valor_por_evento'])) $insert_data['valor_por_evento'] = (float)str_replace(',', '.', $insert_data['valor_por_evento']);
+    if (isset($insert_data['mesada'])) $insert_data['mesada'] = (float)str_replace(',', '.', $insert_data['mesada']);
 
         // Valores por defecto para columnas NOT NULL en la tabla
         if (empty($insert_data['tipo_contrato'])) $insert_data['tipo_contrato'] = 'LAB';
@@ -294,26 +506,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $nuevo_id = $db->insert('empleados', $insert_data);
-        
+
         if ($nuevo_id) {
             $mensaje = "¡Empleado creado con éxito! ID: " . $nuevo_id;
+            // Detectar si la petición es AJAX (XHR) o acepta JSON
+            $isAjax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') ||
+                      (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+            if ($isAjax) {
+                if (ob_get_level()) ob_clean();
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'id' => $nuevo_id, 'message' => $mensaje]);
+                exit();
+            }
             // Intentar redireccionar para evitar re-envío del formulario.
-            // Si las cabeceras ya fueron enviadas (por includes/header.php u otros),
-            // no llamamos a header() para evitar warnings; en su lugar mostraremos
-            // el mensaje en la misma página.
             if (!headers_sent()) {
                 header("Location: empleados.php?success=" . urlencode($mensaje));
                 exit();
             }
-            // si headers_sent() == true, simplemente continuamos y renderizamos $mensaje
         } else {
-            // Obtener error detallado de la conexión para depuración local
+            // Manejar errores de la BD, en particular Duplicate Key (1062)
             $conn = $db->getConnection();
             $dbError = '';
-            if ($conn instanceof mysqli && $conn->error) {
-                $dbError = ' DB error: ' . $conn->error;
+            $friendly = '';
+            if ($conn instanceof mysqli) {
+                $dbError = $conn->error ?: '';
+                $errno = $conn->errno ?: 0;
+                // Código MySQL 1062 -> Duplicate entry
+                if ($errno === 1062 || stripos($dbError, 'Duplicate entry') !== false) {
+                    // Determinar qué índice causó el conflicto
+                    if (stripos($dbError, 'ux_empleados_cedula') !== false || stripos($dbError, 'cedula') !== false) {
+                        $friendly = 'Error: La cédula ya está registrada.';
+                    } elseif (stripos($dbError, 'ux_empleados_email') !== false || stripos($dbError, 'email') !== false) {
+                        $friendly = 'Error: El correo electrónico ya está registrado.';
+                    } else {
+                        $friendly = 'Error: Ya existe un registro con valores duplicados.';
+                    }
+                }
             }
-            $error = "Error al crear el empleado. Consulte los logs de la base de datos." . $dbError;
+            if ($friendly !== '') {
+                $error = $friendly;
+            } else {
+                // Mensaje genérico con información de depuración local si está disponible
+                $error = "Error al crear el empleado. Consulte los logs de la base de datos." . ($dbError ? ' DB error: ' . $dbError : '');
+            }
         }
     }
 }
@@ -345,6 +580,35 @@ if ($empleados === false) {
 <?php if ($error): ?>
     <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
 <?php endif; ?>
+
+<?php
+// Si hubo un POST y se produjo un error de validación, inyectamos JS para reabrir
+// el modal del formulario y marcar los campos implicados sin redirigir.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
+    // Detectar si el error fue por cedula o email para marcar el campo
+    $markCedula = (strpos($error, 'cédula') !== false) ? true : false;
+    $markEmail = (strpos($error, 'correo') !== false || strpos($error, 'email') !== false) ? true : false;
+    ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Abrir modal (usa función global definida en assets/js/empleados.js)
+            if (typeof abrirModalEmpleado === 'function') {
+                abrirModalEmpleado();
+            }
+            // Añadir clase 'is-invalid' a los campos afectados
+            try {
+                <?php if ($markCedula): ?>
+                var ced = document.querySelector('[name="cedula"]'); if (ced) ced.classList.add('is-invalid');
+                <?php endif; ?>
+                <?php if ($markEmail): ?>
+                var em = document.querySelector('[name="email"]'); if (em) em.classList.add('is-invalid');
+                <?php endif; ?>
+            } catch (e) { console.warn(e); }
+        });
+    </script>
+    <?php
+}
+?>
 
 
 
@@ -786,11 +1050,11 @@ if ($empleados === false) {
                     </div>
                     <div class="form-group">
                         <label for="num_cuenta">NUM. CUENTA</label>
-                        <input type="text" id="num_cuenta" name="num_cuenta" class="form-control">
+                        <input type="text" id="num_cuenta" name="numero_cuenta" class="form-control">
                     </div>
                     <div class="form-group">
                         <label for="entidad_bancaria">ENTIDAD BANCARIA</label>
-                        <input type="text" id="entidad_bancaria" name="entidad_bancaria" class="form-control">
+                        <input type="text" id="entidad_bancaria" name="banco" class="form-control">
                     </div>
                 </div>
 

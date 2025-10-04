@@ -62,14 +62,133 @@ document.addEventListener('DOMContentLoaded', () => {
     // Manejar envío del formulario: dejar que el formulario haga POST al servidor
     // excepto cuando la validación falla.
     if (form) {
+        // Helpers para mostrar errores inline en el modal
+        function clearFieldErrors() {
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+        }
+        function showFieldError(fieldName, message) {
+            const el = form.querySelector(`[name="${fieldName}"]`);
+            if (!el) return;
+            el.classList.add('is-invalid');
+            // Añadir mensaje si no existe
+            let feed = el.parentElement.querySelector('.invalid-feedback');
+            if (!feed) {
+                feed = document.createElement('div');
+                feed.className = 'invalid-feedback';
+                el.parentElement.appendChild(feed);
+            }
+            feed.textContent = message;
+        }
+
         form.addEventListener('submit', function(e) {
+            // Limpieza previa
+            clearFieldErrors();
+
             if (!form.checkValidity()) {
                 e.preventDefault();
                 mostrarToast('Por favor complete todos los campos obligatorios.', 'error');
-            } else {
-                // Mostrar notificación al usuario; permitir el envío normal (POST)
+                return;
+            }
+
+            // Si el formulario tiene _action=update, lo manejamos por AJAX
+            const actionInput = form.querySelector('input[name="_action"]');
+            const isUpdate = actionInput && actionInput.value === 'update';
+            if (isUpdate) {
+                e.preventDefault();
                 mostrarToast('Enviando datos al servidor...', 'info');
-                // Si en el futuro queremos AJAX, podemos prevenir el envío aquí.
+
+                // Construir body x-www-form-urlencoded desde FormData
+                const fd = new FormData(form);
+                const params = new URLSearchParams();
+                for (const pair of fd.entries()) { params.append(pair[0], pair[1]); }
+
+                fetch(form.action || 'empleados.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString(),
+                    credentials: 'same-origin'
+                }).then(async res => {
+                    const txt = await res.text();
+                    let json = null;
+                    try { json = JSON.parse(txt); } catch (e) { /* no JSON */ }
+                    if (!res.ok) {
+                        // Status 400 esperado para errores de validación
+                        if (json && json.error) {
+                            mostrarToast(json.error, 'error');
+                            // Marcar campos si el mensaje lo indica
+                            if (json.error.toLowerCase().includes('cédula') || json.error.toLowerCase().includes('cedula')) {
+                                showFieldError('cedula', json.error);
+                            }
+                            if (json.error.toLowerCase().includes('correo') || json.error.toLowerCase().includes('email')) {
+                                showFieldError('email', json.error);
+                            }
+                        } else {
+                            mostrarToast('Error del servidor. Intente de nuevo.', 'error');
+                        }
+                        return;
+                    }
+
+                    // res.ok
+                    if (json && json.success) {
+                        mostrarToast('Empleado actualizado correctamente.', 'success');
+                        // Cerrar modal y recargar para reflejar cambios
+                        if (typeof cerrarModalEmpleado === 'function') cerrarModalEmpleado();
+                        setTimeout(() => window.location.reload(), 700);
+                    } else if (json && json.error) {
+                        mostrarToast(json.error, 'error');
+                        if (json.error.toLowerCase().includes('cédula') || json.error.toLowerCase().includes('cedula')) showFieldError('cedula', json.error);
+                        if (json.error.toLowerCase().includes('correo') || json.error.toLowerCase().includes('email')) showFieldError('email', json.error);
+                    } else {
+                        // Fallback: mostrar texto plano si no es JSON
+                        const bodyText = txt || 'Respuesta inesperada del servidor';
+                        mostrarToast(bodyText, 'error');
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    mostrarToast('Error al comunicarse con el servidor', 'error');
+                });
+            } else {
+                // Crear por AJAX para mantener la misma UX sin recarga
+                e.preventDefault();
+                mostrarToast('Creando empleado...', 'info');
+
+                const fd = new FormData(form);
+                const params = new URLSearchParams();
+                for (const pair of fd.entries()) { params.append(pair[0], pair[1]); }
+
+                fetch(form.action || 'empleados.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+                    body: params.toString(),
+                    credentials: 'same-origin'
+                }).then(async res => {
+                    const txt = await res.text();
+                    let json = null;
+                    try { json = JSON.parse(txt); } catch (e) { }
+                    if (!res.ok) {
+                        if (json && json.error) {
+                            mostrarToast(json.error, 'error');
+                            if (json.error.toLowerCase().includes('cédula') || json.error.toLowerCase().includes('cedula')) showFieldError('cedula', json.error);
+                            if (json.error.toLowerCase().includes('correo') || json.error.toLowerCase().includes('email')) showFieldError('email', json.error);
+                        } else {
+                            mostrarToast('Error al crear el empleado', 'error');
+                        }
+                        return;
+                    }
+                    if (json && json.success) {
+                        mostrarToast('Empleado creado correctamente', 'success');
+                        if (typeof cerrarModalEmpleado === 'function') cerrarModalEmpleado();
+                        setTimeout(() => window.location.reload(), 700);
+                    } else if (json && json.error) {
+                        mostrarToast(json.error, 'error');
+                    } else {
+                        mostrarToast('Respuesta inesperada del servidor', 'error');
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    mostrarToast('Error al comunicarse con el servidor', 'error');
+                });
             }
         });
     }
@@ -117,7 +236,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputNivelRiesgo = document.querySelector('select[name="nivel_riesgo"]');
     
     // Secciones Pagos
-    const inputTipoContrato = document.querySelector('select[name="contrato"]');
+    // selector corregido: el formulario usa name="tipo_contrato"
+    const inputTipoContrato = document.querySelector('select[name="tipo_contrato"]');
     const inputMesada = document.querySelector('input[name="mesada"]');
     const outputAuxTransporte = document.querySelector('input[name="auxilio_transporte"]');
     
