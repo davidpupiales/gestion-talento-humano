@@ -1,3 +1,5 @@
+# Instrucciones para agentes AI - Sistema HRMS
+
 ## Resumen rápido
 
 Proyecto híbrido: una aplicación PHP monolítica (páginas en el root: `index.php`, `login.php`, `dashboard.php`, etc.) y una carpeta `app/` con un frontend moderno en Next.js (TypeScript + React + Tailwind + Radix UI). El backend PHP usa MySQL vía `config/database.php`.
@@ -40,13 +42,16 @@ mysql -u root -p rrhh_personal < .\bd\tablaEmpleados.sql
 - Archivos comunes para incluir en páginas PHP: `includes/header.php`, `includes/footer.php`. No eliminar estas inclusiones en cambios pequeños.
 - Acceso a DB: usar `Database::getInstance()->query(...)` o `insert(...)`. Evitar consultas inline sin `prepare` donde ya existe un helper.
 - CSRF y sesión: `functions/auth.php` implementa `generar_token_csrf()` y `verificar_token_csrf()`. Usar estos helpers en formularios PHP nuevos.
+- Base de datos: el nombre por defecto es `rrhh_personal`, pero `database_schema.sql` crea `hrms_system`. Verificar qué DB se está usando antes de cambios.
 
 ## Puntos críticos y riesgos detectados (útiles para PRs)
 
 - Inconsistencia de roles: `config/session.php` usa roles en minúscula ('empleado','gerente','administrador') mientras que `functions/auth.php` usa 'Empleado','Gerente','Administrador' en mayúscula. Esto puede causar errores silenciosos en checks de permisos. Recomendación: unificar y escribir pruebas/manual QA.
-- Secrets en repo: `config/database.php` contiene credenciales por defecto. No comites cambios con credenciales reales; usa variables de entorno o documentación para instructores.
+- Secrets en repo: `config/database.php` contiene credenciales por defecto (usuario: root, password: 123456789). No comites cambios con credenciales reales; usa variables de entorno o documentación para instructores.
 - Next config: `next.config.mjs` desactiva fallos de lint/types en build (ignoreDuringBuilds y ignoreBuildErrors). No asumir que el código TS está 100% tipado.
 - Migración de UI: el Next app y las páginas PHP no están automáticamente sincronizadas: si cambias endpoints o nombres de campos DB, actualizar ambas capas manualmente.
+- Usuarios mock: `functions/auth.php` contiene usuarios hardcodeados para desarrollo (admin/admin123, gerente1/gerente123, empleado1/empleado123). No usar en producción.
+- Base de datos mixta: config usa `rrhh_personal` pero schema SQL crea `hrms_system`. Verificar consistencia.
 
 ## Dónde buscar ejemplos concretos (referencias rápidas)
 
@@ -61,8 +66,10 @@ mysql -u root -p rrhh_personal < .\bd\tablaEmpleados.sql
 
 - Asegurar que cualquier cambio en la DB tenga SQL de migración/actualización en `bd/` o `scripts/` y documentación breve en el PR.
 - Probar páginas PHP clave manualmente: `login.php`, `dashboard.php`, `empleados.php` después de cambios en sesiones/DB.
-- Para cambios en UI/Next: levantar `npm run dev` y verificar `http://localhost:3000` (o puerto por defecto) y revisar la consola por errores JS/SSR.
+- Para cambios en UI/Next: levantar `npm run dev` y verificar `http://localhost:3000` y revisar la consola por errores JS/SSR.
 - No sobrescribir cambios en `includes/header.php` / `includes/footer.php` sin validar que no rompen rutas relativas de assets.
+- Verificar que los cambios en roles/permisos sean consistentes entre `config/session.php` y `functions/auth.php`.
+- Si modificas endpoints o campos DB, actualizar tanto la capa PHP como la Next.js (si aplicable).
 
 ## Plantillas útiles
 

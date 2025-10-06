@@ -11,6 +11,25 @@ $db = Database::getInstance(); // Instancia de la DB (necesaria para endpoints A
 // Activar buffering temprano para poder limpiar salida accidental antes de responder JSON
 if (!ob_get_level()) ob_start();
 
+// --- ENDPOINT AJAX para obtener municipios por departamento ---
+if (isset($_GET['action']) && $_GET['action'] === 'get_municipios' && isset($_GET['departamento'])) {
+    // Limpiar cualquier output previo
+    if (ob_get_level()) ob_clean();
+    
+    header('Content-Type: application/json');
+    
+    $departamento = $_GET['departamento'];
+    $municipios = getMunicipiosPorDepartamento($departamento);
+    
+    $options = '<option value="" disabled selected hidden>Seleccione...</option>';
+    foreach ($municipios as $municipio) {
+        $options .= '<option value="' . htmlspecialchars($municipio) . '">' . htmlspecialchars($municipio) . '</option>';
+    }
+    
+    echo json_encode(['success' => true, 'options' => $options]);
+    exit();
+}
+
 // --- Manejo TEMPRANO de CREACIÓN por POST (intercepta peticiones AJAX antes de que header.php imprima HTML)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['_action'])) {
     $datos_raw = $_POST;
@@ -40,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['_action'])) {
         $allowed = [
             'codigo','cedula','nombre_completo','email','telefono','direccion','fecha_nacimiento','genero','grupo_sanguineo',
             'tipo_contrato','estado','fecha_ingreso','fecha_retiro','sede','cargo','nivel','calidad','programa','area',
-            'departamento','municipio','servicio','nivel_riesgo','smlv','salario','valor_por_evento','mesada','pres_mensual','pres_anual','extras_legales',
+            'departamento','municipio','servicio','nivel_riesgo','salario','valor_por_evento','mesada','pres_mensual','pres_anual','extras_legales',
             'auxilio_transporte','banco','tipo_cuenta','numero_cuenta','eps','afp','arl','caja_compensacion','poliza',
         ];
         foreach ($allowed as $col) {
@@ -64,7 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['_action'])) {
         if (empty($insert_data['tipo_contrato'])) $insert_data['tipo_contrato'] = 'LAB';
         if (empty($insert_data['estado'])) $insert_data['estado'] = 'ACTIVO';
         if (empty($insert_data['fecha_ingreso'])) $insert_data['fecha_ingreso'] = date('Y-m-d');
-    if (isset($insert_data['smlv'])) $insert_data['smlv'] = (float)str_replace(',', '.', $insert_data['smlv']);
     if (isset($insert_data['salario'])) $insert_data['salario'] = (float)str_replace(',', '.', $insert_data['salario']);
     if (isset($insert_data['valor_por_evento'])) $insert_data['valor_por_evento'] = (float)str_replace(',', '.', $insert_data['valor_por_evento']);
     if (isset($insert_data['mesada'])) $insert_data['mesada'] = (float)str_replace(',', '.', $insert_data['mesada']);
@@ -72,17 +90,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['_action'])) {
         $nuevo_id = $db->insert('empleados', $insert_data);
         if ($nuevo_id) {
             $mensaje = "¡Empleado creado con éxito! ID: " . $nuevo_id;
-            $isAjax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false);
-            if ($isAjax) { if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['success'=>true,'id'=>$nuevo_id,'message'=>$mensaje]); exit(); }
+            // Mejorar detección de AJAX
+            $isAjax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || 
+                      (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json') !== false);
+            
+            if ($isAjax) { 
+                // Limpiar cualquier output buffer y devolver JSON
+                if (ob_get_level()) ob_clean(); 
+                header('Content-Type: application/json'); 
+                echo json_encode(['success' => true, 'id' => $nuevo_id, 'message' => $mensaje]); 
+                exit(); 
+            }
             if (!headers_sent()) { header("Location: empleados.php?success=" . urlencode($mensaje)); exit(); }
         } else {
-            $conn = $db->getConnection(); $dbErr = ($conn instanceof mysqli) ? $conn->error : '';
-            if ($dbErr && (stripos($dbErr,'Duplicate entry')!==false || ($conn instanceof mysqli && $conn->errno===1062))) {
-                $friendly = stripos($dbErr,'cedula')!==false ? 'Error: La cédula ya está registrada.' : (stripos($dbErr,'email')!==false ? 'Error: El correo electrónico ya está registrado.' : 'Error: Ya existe un registro con valores duplicados.');
-                if ((isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json')!==false)) { if (ob_get_level()) ob_clean(); header('Content-Type: application/json'); echo json_encode(['error'=>$friendly]); exit(); }
+            $conn = $db->getConnection(); 
+            $dbErr = ($conn instanceof mysqli) ? $conn->error : '';
+            if ($dbErr && (stripos($dbErr,'Duplicate entry') !== false || ($conn instanceof mysqli && $conn->errno === 1062))) {
+                $friendly = stripos($dbErr,'cedula') !== false ? 'Error: La cédula ya está registrada.' : 
+                           (stripos($dbErr,'email') !== false ? 'Error: El correo electrónico ya está registrado.' : 
+                            'Error: Ya existe un registro con valores duplicados.');
+                
+                // Mejorar detección de AJAX para errores
+                $isAjax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || 
+                          (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json') !== false);
+                
+                if ($isAjax) { 
+                    if (ob_get_level()) ob_clean(); 
+                    header('Content-Type: application/json'); 
+                    echo json_encode(['error' => $friendly]); 
+                    exit(); 
+                }
                 $error = $friendly;
             } else {
-                $error = 'Error al crear el empleado.' . ($dbErr ? ' DB: '.$dbErr : '');
+                $errorMsg = 'Error al crear el empleado.' . ($dbErr ? ' DB: '.$dbErr : '');
+                
+                // Verificar si es AJAX y devolver JSON para errores generales
+                $isAjax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') || 
+                          (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'],'application/json') !== false);
+                
+                if ($isAjax) { 
+                    if (ob_get_level()) ob_clean(); 
+                    header('Content-Type: application/json'); 
+                    echo json_encode(['error' => $errorMsg]); 
+                    exit(); 
+                }
+                $error = $errorMsg;
             }
         }
     }
@@ -414,7 +466,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $allowed = [
             'codigo','cedula','email','telefono','direccion','fecha_nacimiento','genero','grupo_sanguineo',
             'tipo_contrato','estado','fecha_ingreso','fecha_retiro','sede','cargo','nivel','calidad','programa','area',
-            'departamento','municipio','servicio','nivel_riesgo','smlv','salario','valor_por_evento','mesada','pres_mensual','pres_anual','extras_legales',
+            'departamento','municipio','servicio','nivel_riesgo','salario','valor_por_evento','mesada','pres_mensual','pres_anual','extras_legales',
             'auxilio_transporte','banco','tipo_cuenta','numero_cuenta','eps','afp','arl','caja_compensacion','poliza',
             'certificado_manipulacion_alimentos','certificado_rcp','certificado_altura','certificado_bioseguridad',
             'fecha_fin_zo_ingreso','fecha_fin_zo_egreso','contacto_emergencia','fecha_vencimiento_registro',
@@ -446,7 +498,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($apellido_completo !== '') $insert_data['apellido_completo'] = $apellido_completo;
 
         // Saneamiento de tipos básicos
-    if (isset($insert_data['smlv'])) $insert_data['smlv'] = (float)str_replace(',', '.', $insert_data['smlv']);
     if (isset($insert_data['salario'])) $insert_data['salario'] = (float)str_replace(',', '.', $insert_data['salario']);
     if (isset($insert_data['valor_por_evento'])) $insert_data['valor_por_evento'] = (float)str_replace(',', '.', $insert_data['valor_por_evento']);
     if (isset($insert_data['mesada'])) $insert_data['mesada'] = (float)str_replace(',', '.', $insert_data['mesada']);
@@ -455,7 +506,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($insert_data['tipo_contrato'])) $insert_data['tipo_contrato'] = 'LAB';
         if (empty($insert_data['estado'])) $insert_data['estado'] = 'ACTIVO';
         if (empty($insert_data['fecha_ingreso'])) $insert_data['fecha_ingreso'] = date('Y-m-d');
-        if (empty($insert_data['smlv'])) $insert_data['smlv'] = SMLV;
         // Usar 'mesada' como fuente principal: sincronizar salario = mesada
         if (!empty($insert_data['mesada'])) {
             $insert_data['salario'] = $insert_data['mesada'];
@@ -660,147 +710,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
         </div>
     </div>
     
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-users"></i>
-                Lista de Empleados
-            </h3>
-            <div class="card-subtitle">
-                Gestión completa de empleados de la empresa
+    <div class="employees-container">
+        <div class="employees-header">
+            <div class="header-content">
+                <div class="header-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="header-text">
+                    <h2 class="header-title">Lista de Empleados</h2>
+                    <p class="header-subtitle">Gestión completa de empleados de la empresa</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-number"><?php echo count($empleados); ?></span>
+                    <span class="stat-label">Total Empleados</span>
+                </div>
             </div>
         </div>
         
-        <div class="table-container d-none d-lg-block">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Nombre Completo</th>
-                        <th>Email</th>
-                        <th>Departamento</th>
-                        <th>Cargo</th>
-                        <th>Fecha Ingreso</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php 
-                    // El bucle sigue intacto y funcionará cuando $empleados contenga datos de la DB
-                    foreach ($empleados as $empleado): 
-                    ?>
-                    <tr>
-                        <td>
-                            <span class="badge badge-info">
-                                <?php echo htmlspecialchars($empleado['codigo']); ?>
-                            </span>
-                        </td>
-                        <td>
-                            <div class="d-flex align-center gap-md">
-                                <div class="user-avatar">
-                                    <?php echo strtoupper(substr(($empleado['nombre_completo'] ?? ''), 0, 1) . substr(($empleado['apellido_completo'] ?? ''), 0, 1)); ?>
-                                </div>
-                                <div>
-                                    <div class="text-primary">
-                                        <?php echo htmlspecialchars(trim(($empleado['nombre_completo'] ?? '') . ' ' . ($empleado['apellido_completo'] ?? ''))); ?>
-                                    </div>
-                                    <div class="text-muted" style="font-size: 0.75rem;">
-                                        <?php echo htmlspecialchars($empleado['cedula']); ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><?php echo htmlspecialchars($empleado['email']); ?></td>
-                        <td>
-                            <span class="badge badge-secondary">
-                                <?php echo htmlspecialchars($empleado['departamento']); ?>
-                            </span>
-                        </td>
-                        <td><?php echo htmlspecialchars($empleado['cargo']); ?></td>
-                        <td><?php echo date('d/m/Y', strtotime($empleado['fecha_ingreso'])); ?></td>
-                        <td>
-                            <span class="badge badge-success">
-                                <?php echo ucfirst($empleado['estado']); ?>
-                            </span>
-                        </td>
-                        <td>
-                            <div class="d-flex gap-sm">
-                                <button class="btn btn-sm btn-secondary" onclick="verEmpleado(<?php echo $empleado['id']; ?>)" title="Ver Detalles">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-primary" onclick="editarEmpleado(<?php echo $empleado['id']; ?>)" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <?php if (SessionManager::tienePermiso('administrador')): ?>
-                                <button class="btn btn-sm btn-danger" onclick="eliminarEmpleado(<?php echo $empleado['id']; ?>)" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-            <?php if (empty($empleados)): ?>
-            <div class="text-center p-3 text-muted">No hay empleados registrados en el sistema.</div>
-            <?php endif; ?>
+        <?php if (empty($empleados)): ?>
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h3 class="empty-title">No hay empleados registrados</h3>
+            <p class="empty-message">Comienza agregando empleados al sistema para gestionar tu equipo de trabajo.</p>
+            <button class="btn btn-primary btn-add-employee" onclick="abrirModal()">
+                <i class="fas fa-plus"></i> Agregar Primer Empleado
+            </button>
         </div>
+        <?php else: ?>
         
-        <div class="employee-list d-block d-lg-none">
+        <!-- Lista vertical moderna -->
+        <div class="employees-list-vertical">
             <?php foreach ($empleados as $empleado): ?>
-            <div class="employee-card">
-                <div class="card-header-mobile">
-                    <div class="user-avatar-mobile">
-                        <?php echo strtoupper(substr(($empleado['nombre_completo'] ?? ''), 0, 1) . substr(($empleado['apellido_completo'] ?? ''), 0, 1)); ?>
+            <div class="employee-card-unified">
+                <div class="employee-content">
+                    <!-- Avatar compacto -->
+                    <div class="employee-avatar-compact">
+                        <span class="avatar-initials">
+                            <?php echo strtoupper(substr(($empleado['nombre_completo'] ?? ''), 0, 1) . substr(($empleado['apellido_completo'] ?? ''), 0, 1)); ?>
+                        </span>
+                        <div class="status-indicator status-<?php echo strtolower($empleado['estado']); ?>"></div>
                     </div>
-                    <div class="employee-info">
-                        <h4 class="employee-name"><?php echo htmlspecialchars(trim(($empleado['nombre_completo'] ?? '') . ' ' . ($empleado['apellido_completo'] ?? ''))); ?></h4>
-                        <div class="employee-meta">
-                            <span class="badge badge-info"><?php echo htmlspecialchars($empleado['codigo']); ?></span>
-                            <span class="badge badge-secondary"><?php echo htmlspecialchars($empleado['departamento']); ?></span>
+                    
+                    <!-- Información horizontal del empleado -->
+                    <div class="employee-info-horizontal">
+                        <div class="employee-name-inline">
+                            <?php echo htmlspecialchars(trim(($empleado['nombre_completo'] ?? '') . ' ' . ($empleado['apellido_completo'] ?? ''))); ?>
+                        </div>
+                        <div class="employee-position-inline"><?php echo htmlspecialchars($empleado['cargo']); ?></div>
+                        
+                        <div class="employee-field">
+                            <div class="field-label">Cédula</div>
+                            <div class="field-value"><?php echo htmlspecialchars($empleado['cedula']); ?></div>
+                        </div>
+                        
+                        <div class="employee-field">
+                            <div class="field-label">Email</div>
+                            <div class="field-value"><?php echo htmlspecialchars($empleado['email']); ?></div>
+                        </div>
+                        
+                        <div class="employee-field">
+                            <div class="field-label">Teléfono</div>
+                            <div class="field-value"><?php echo htmlspecialchars($empleado['telefono'] ?? 'No registrado'); ?></div>
+                        </div>
+                        
+                        <div class="employee-field">
+                            <div class="field-label">Ubicación</div>
+                            <div class="field-value"><?php echo htmlspecialchars($empleado['departamento']); ?></div>
+                        </div>
+                        
+                        <div class="employee-field">
+                            <div class="field-label">Ingreso</div>
+                            <div class="field-value"><?php echo date('d/m/Y', strtotime($empleado['fecha_ingreso'])); ?></div>
                         </div>
                     </div>
-                </div>
-                <div class="card-body-mobile">
-                    <div class="details-item">
-                        <strong>Cargo:</strong> <span><?php echo htmlspecialchars($empleado['cargo']); ?></span>
+                    
+                    <!-- Badges compactos -->
+                    <div class="employee-badges-compact">
+                        <span class="badge-primary"><?php echo strtoupper($empleado['tipo_contrato'] ?? 'N/A'); ?></span>
+                        <span class="badge-status status-<?php echo strtolower($empleado['estado']); ?>">
+                            <?php echo strtoupper($empleado['estado']); ?>
+                        </span>
                     </div>
-                    <div class="details-item">
-                        <strong>Email:</strong> <span><?php echo htmlspecialchars($empleado['email']); ?></span>
-                    </div>
-                    <div class="details-item">
-                        <strong>Teléfono:</strong> <span><?php echo htmlspecialchars($empleado['telefono']); ?></span>
-                    </div>
-                    <div class="details-item">
-                        <strong>Ingreso:</strong> <span><?php echo date('d/m/Y', strtotime($empleado['fecha_ingreso'])); ?></span>
-                    </div>
-                    <div class="details-item">
-                        <strong>Estado:</strong> <span class="badge badge-success"><?php echo ucfirst($empleado['estado']); ?></span>
-                    </div>
-                </div>
-                <div class="card-footer-mobile">
-                    <div class="d-flex justify-content-center gap-sm">
-                        <button class="btn btn-sm btn-secondary" onclick="verEmpleado(<?php echo $empleado['id']; ?>)" title="Ver Detalles">
-                            <i class="fas fa-eye"></i> Ver
+                    
+                    <!-- Acciones -->
+                    <div class="employee-actions-inline">
+                        <button class="action-btn action-view" onclick="verEmpleado(<?php echo $empleado['id']; ?>)" title="Ver Detalles">
+                            <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-sm btn-primary" onclick="editarEmpleado(<?php echo $empleado['id']; ?>)" title="Editar">
-                            <i class="fas fa-edit"></i> Editar
+                        <button class="action-btn action-edit" onclick="editarEmpleado(<?php echo $empleado['id']; ?>)" title="Editar">
+                            <i class="fas fa-edit"></i>
                         </button>
                         <?php if (SessionManager::tienePermiso('administrador')): ?>
-                        <button class="btn btn-sm btn-danger" onclick="eliminarEmpleado(<?php echo $empleado['id']; ?>)" title="Eliminar">
-                            <i class="fas fa-trash"></i> Eliminar
+                        <button class="action-btn action-delete" onclick="eliminarEmpleado(<?php echo $empleado['id']; ?>)" title="Eliminar">
+                            <i class="fas fa-trash"></i>
                         </button>
                         <?php endif; ?>
                     </div>
                 </div>
             </div>
             <?php endforeach; ?>
-             <?php if (empty($empleados)): ?>
-             <div class="text-center p-3 text-muted">No hay empleados registrados en el sistema.</div>
-            <?php endif; ?>
         </div>
+        
+        <?php endif; ?>
     </div>
 </div>
 
@@ -820,17 +835,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
             <form id="form-nuevo-empleado" method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>"> 
             
                 <div class="tab-header mb-lg">
-                    <button type="button" class="tab-button active" onclick="mostrarSeccionModal('personal')">INFORMACIÓN PERSONAL</button>
-                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('laboral')">INFORMACIÓN LABORAL</button>
-                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('pagos')">INFORMACIÓN PAGOS</button>
-                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('aportes')">INFORMACIÓN APORTES</button>
-                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('cursos')">VIGENCIA DE CURSOS</button>
+                    <button type="button" class="tab-button active" onclick="mostrarSeccionModal('personal', event)">INFORMACIÓN PERSONAL</button>
+                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('laboral', event)">INFORMACIÓN LABORAL</button>
+                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('pagos', event)">INFORMACIÓN PAGOS</button>
+                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('aportes', event)">INFORMACIÓN APORTES</button>
+                    <button type="button" class="tab-button" onclick="mostrarSeccionModal('cursos', event)">VIGENCIA DE CURSOS</button>
                 </div>
 
                 <div id="personal" class="tab-content-modal active grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
                     
                     <div class="form-group">
-                        <label for="tipo_contrato">CONTRATO *</label>
+                        <label for="tipo_contrato">CONTRATO</label>
                         <select id="tipo_contrato" name="tipo_contrato" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
                             <?php echo generar_opciones(getContratoOptions()); ?>
@@ -848,12 +863,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="cedula">CÉDULA (DOCUMENTO DE IDENTIDAD) *</label>
+                        <label for="cedula">CÉDULA (DOCUMENTO DE IDENTIDAD)</label>
                         <input type="text" id="cedula" name="cedula" class="form-control" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="nombre_completo">NOMBRE *</label>
+                        <label for="nombre_completo">NOMBRE</label>
                         <input type="text" id="nombre_completo" name="nombre_completo" class="form-control" required>
                     </div>
                     <div class="form-group">
@@ -865,12 +880,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
                         <input type="text" id="direccion" name="direccion" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label for="email">CORREO (CORREO ELECTRÓNICO) *</label>
+                        <label for="email">CORREO (CORREO ELECTRÓNICO)</label>
                         <input type="email" id="email" name="email" class="form-control" required>
                     </div>
                     <div class="form-group">
                         <label for="telefono">CELULAR</label>
-                        <input type="tel" id="telefono" name="telefono" class="form-control">
+                        <input type="tel" id="telefono" name="telefono" class="form-control" required>
                     </div>
                     <div class="form-group">
                         <label for="poliza">PÓLIZA</label>
@@ -916,7 +931,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
                         <input type="text" id="sede" name="sede" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label for="cargo">CARGO *</label>
+                        <label for="cargo">CARGO </label>
                         <select id="cargo" name="cargo" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
                             <?php echo generar_opciones(getCargoOptions()); ?>
@@ -955,14 +970,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
                         <input type="text" id="intramural" name="intramural" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label for="departamento">DEPARTAMENTO *</label>
+                        <label for="departamento">DEPARTAMENTO </label>
                         <select id="departamento" name="departamento" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
                             <?php echo generar_opciones(getDepartamentoOptions()); ?>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="municipio">MUNICIPIO *</label>
+                        <label for="municipio">MUNICIPIO </label>
                         <select id="municipio" name="municipio" class="form-control" required>
                             <option value="" disabled selected hidden>Seleccione...</option>
                             <?php echo generar_opciones(getMunicipioOptions()); ?>
@@ -1013,12 +1028,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
                     <div class="form-group">
                         <label for="dias_trabajados">DÍAS TRABAJADOS (Auto)</label>
                         <input type="number" id="dias_trabajados" name="dias_trabajados" class="form-control" readonly placeholder="Calculado por DB">
-                    </div>
-                    <div class="form-group" style="display: none;">
-                        <label for="smlv">SMLV BASE</label>
-                        <select id="smlv" name="smlv" class="form-control">
-                            <?php echo generar_opciones(getSmlvOptions()); ?>
-                        </select>
                     </div>
                 </div>
 
@@ -1164,41 +1173,117 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
 
 <script>
     // Función de JavaScript para cambiar entre secciones (TABS) dentro del modal
-    function mostrarSeccionModal(seccionId) {
+    function mostrarSeccionModal(seccionId, event) {
+        // Prevenir propagación del evento para evitar conflictos
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
         // Oculta todas las secciones
-        document.querySelectorAll('.tab-content-modal').forEach(content => {
+        document.querySelectorAll('#modal-empleado .tab-content-modal').forEach(content => {
             content.style.display = 'none';
             content.classList.remove('active');
         });
-        // Desactiva todos los botones
-        document.querySelectorAll('.tab-buttons-modal .tab-button').forEach(button => {
+        
+        // Desactiva todos los botones del modal específicamente
+        document.querySelectorAll('#modal-empleado .tab-header .tab-button').forEach(button => {
             button.classList.remove('active');
         });
 
-        // Muestra la sección seleccionada y la activa (comprobación defensiva)
+        // Muestra la sección seleccionada y la activa
         const selSection = document.getElementById(seccionId);
         if (selSection) {
             selSection.style.display = 'grid';
             selSection.classList.add('active');
         }
 
-        // Activa el botón de la pestaña correspondiente (buscar en .tab-header o en cualquier .tab-button)
-        let tabBtn = document.querySelector(`.tab-header button[onclick="mostrarSeccionModal('${seccionId}')"]`);
-        if (!tabBtn) {
-            tabBtn = document.querySelector(`.tab-button[onclick="mostrarSeccionModal('${seccionId}')"]`);
-        }
-        if (tabBtn && tabBtn.classList) {
+        // Activa el botón de la pestaña correspondiente
+        const tabBtn = document.querySelector(`#modal-empleado .tab-header button[onclick*="'${seccionId}'"]`);
+        if (tabBtn) {
             tabBtn.classList.add('active');
         }
     }
     
-    // Inicializar el modal para mostrar la sección 'personal' al cargar la página
-    document.addEventListener('DOMContentLoaded', () => {
-        const modal = document.getElementById('modal-empleado');
-        if (modal) {
-             mostrarSeccionModal('personal'); // Mostrar 'INFORMACIÓN PERSONAL' al inicio
+    // Función para inicializar el modal
+    function inicializarModalEmpleado() {
+        mostrarSeccionModal('personal'); // Mostrar 'INFORMACIÓN PERSONAL' al inicio
+        
+        // Añadir event listeners específicos para los botones del modal
+        const modalButtons = document.querySelectorAll('#modal-empleado .tab-header .tab-button');
+        modalButtons.forEach(button => {
+            // Remover listeners previos para evitar duplicados
+            button.removeEventListener('click', handleModalTabClick);
+            // Añadir nuevo listener
+            button.addEventListener('click', handleModalTabClick);
+        });
+        
+        // Inicializar el manejo de campos según tipo de contrato
+        const tipoContratoSelect = document.getElementById('tipo_contrato');
+        if (tipoContratoSelect) {
+            // Remover listeners previos para evitar duplicados
+            tipoContratoSelect.removeEventListener('change', manejarCamposContrato);
+            // Añadir nuevo listener
+            tipoContratoSelect.addEventListener('change', manejarCamposContrato);
+            
+            // Ejecutar una vez para inicializar el estado
+            setTimeout(() => manejarCamposContrato(), 50);
         }
+        
+        // Inicializar el manejo de municipios según departamento
+        const departamentoSelect = document.getElementById('departamento');
+        if (departamentoSelect) {
+            // Remover listeners previos para evitar duplicados
+            departamentoSelect.removeEventListener('change', cargarMunicipiosPorDepartamento);
+            // Añadir nuevo listener
+            departamentoSelect.addEventListener('change', cargarMunicipiosPorDepartamento);
+            
+            // Si ya hay un departamento seleccionado, cargar sus municipios
+            if (departamentoSelect.value) {
+                setTimeout(() => cargarMunicipiosPorDepartamento(), 50);
+            }
+        }
+    }
+    
+    // Handler específico para clics en pestañas del modal
+    function handleModalTabClick(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const button = event.currentTarget;
+        const onclick = button.getAttribute('onclick');
+        
+        // Extraer el ID de sección del onclick
+        const match = onclick.match(/mostrarSeccionModal\('([^']+)'/);
+        if (match) {
+            const seccionId = match[1];
+            mostrarSeccionModal(seccionId, event);
+        }
+    }
+    
+    // Hacer la función disponible globalmente
+    window.inicializarModalEmpleado = inicializarModalEmpleado;
+    
+    // Inicializar cuando se cargue la página
+    document.addEventListener('DOMContentLoaded', () => {
+        inicializarModalEmpleado();
     });
+    
+    // También inicializar cuando se abra el modal
+    const modalElement = document.getElementById('modal-empleado');
+    if (modalElement) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const modal = mutation.target;
+                    if (modal.style.display === 'flex' || modal.classList.contains('show')) {
+                        setTimeout(() => inicializarModalEmpleado(), 50);
+                    }
+                }
+            });
+        });
+        observer.observe(modalElement, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
 
     // Función para el cálculo de Días Trabajados en el frontend del modal
     function calcularDiasModal() {
@@ -1213,6 +1298,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
             document.getElementById('dias_trabajados').value = diffDays;
         } else {
             document.getElementById('dias_trabajados').value = 0;
+        }
+    }
+
+    // Función para manejar campos según tipo de contrato
+    function manejarCamposContrato() {
+        const tipoContrato = document.getElementById('tipo_contrato').value;
+        const campoMesada = document.getElementById('mesada');
+        const campoValorEvento = document.getElementById('valor_por_evento');
+        
+        if (tipoContrato === 'OPS') {
+            // Si es OPS: deshabilitar MESADA, habilitar VALOR POR EVENTO
+            campoMesada.disabled = true;
+            campoMesada.value = '';
+            campoMesada.placeholder = 'No aplica para contrato OPS';
+            
+            campoValorEvento.disabled = false;
+            campoValorEvento.placeholder = '';
+        } else if (tipoContrato === 'LAB') {
+            // Si es LAB: deshabilitar VALOR POR EVENTO, habilitar MESADA
+            campoValorEvento.disabled = true;
+            campoValorEvento.value = '';
+            campoValorEvento.placeholder = 'No aplica para contrato LAB';
+            
+            campoMesada.disabled = false;
+            campoMesada.placeholder = '';
+        } else {
+            // Si no hay selección: habilitar ambos campos
+            campoMesada.disabled = false;
+            campoMesada.placeholder = '';
+            
+            campoValorEvento.disabled = false;
+            campoValorEvento.placeholder = '';
+        }
+    }
+
+    // Función para cargar municipios según departamento seleccionado
+    function cargarMunicipiosPorDepartamento() {
+        const departamentoSelect = document.getElementById('departamento');
+        const municipioSelect = document.getElementById('municipio');
+        
+        if (!departamentoSelect || !municipioSelect) return;
+        
+        const departamento = departamentoSelect.value;
+        
+        if (!departamento) {
+            // Si no hay departamento seleccionado, limpiar municipios
+            municipioSelect.innerHTML = '<option value="" disabled selected hidden>Seleccione...</option>';
+            return;
+        }
+        
+        // Mostrar loading
+        municipioSelect.innerHTML = '<option value="" disabled selected>Cargando...</option>';
+        municipioSelect.disabled = true;
+        
+        // Hacer petición AJAX
+        fetch(`empleados.php?action=get_municipios&departamento=${encodeURIComponent(departamento)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    municipioSelect.innerHTML = data.options;
+                    municipioSelect.disabled = false;
+                } else {
+                    municipioSelect.innerHTML = '<option value="" disabled selected>Error al cargar</option>';
+                    municipioSelect.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar municipios:', error);
+                municipioSelect.innerHTML = '<option value="" disabled selected>Error al cargar</option>';
+                municipioSelect.disabled = false;
+            });
+    }
+
+    // Función auxiliar para resetear el select de municipios
+    function resetearMunicipios() {
+        const municipioSelect = document.getElementById('municipio');
+        if (municipioSelect) {
+            municipioSelect.innerHTML = '<option value="" disabled selected hidden>Seleccione...</option>';
+            municipioSelect.disabled = false;
         }
     }
 </script>

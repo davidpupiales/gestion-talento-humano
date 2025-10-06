@@ -348,6 +348,69 @@ body {
     box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.45) !important;
 }
 
+/* Estilos específicos para las pestañas del modal de empleados */
+#modal-empleado .tab-header .tab-button {
+    background: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+#modal-empleado .tab-header .tab-button:not(.active):hover {
+    background-color: var(--border-color);
+    color: var(--text-color);
+}
+
+/* Asegurar que solo el botón con .active esté destacado */
+#modal-empleado .tab-header .tab-button.active {
+    color: var(--surface-color) !important;
+    background-color: var(--primary-color) !important;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3) !important;
+    border-color: var(--primary-color) !important;
+    z-index: 2;
+}
+
+/* Prevenir que otros botones tengan estilos activos */
+#modal-empleado .tab-header .tab-button:not(.active) {
+    background-color: var(--surface-color) !important;
+    color: var(--text-color) !important;
+    box-shadow: none !important;
+}
+
+/* Asegurar que solo la sección activa sea visible */
+#modal-empleado .tab-content-modal {
+    display: none !important;
+}
+
+#modal-empleado .tab-content-modal.active {
+    display: grid !important;
+}
+
+/* Estilos para campos deshabilitados según tipo de contrato */
+#modal-empleado input[disabled] {
+    background-color: #f5f5f5 !important;
+    color: #999 !important;
+    cursor: not-allowed !important;
+    border-color: #ddd !important;
+}
+
+#modal-empleado input[disabled]::placeholder {
+    color: #bbb !important;
+}
+
+/* Estilos para select de municipio cuando está cargando */
+#modal-empleado select[disabled] {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+    cursor: wait !important;
+}
+
+#modal-empleado select[disabled] option {
+    color: #6c757d !important;
+}
+
 /* ---------------------------------------------------------------------- */
 /* Si el problema ocurre solo en Chrome/Edge al hacer clic, puede que sea el estado :active */
 #modal-empleado :is(.form-control,
@@ -357,4 +420,634 @@ body {
     select,
     textarea):active {
     background-color: var(--surface-color) !important;
+}
+
+/* =============================================== */
+/* ESTILOS PARA VALIDACIÓN DE FORMULARIOS */
+/* =============================================== */
+
+/* Campo con error */
+.form-control.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    background-color: #fff5f5 !important;
+}
+
+/* Mensaje de error */
+.invalid-feedback {
+    display: block !important;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #dc3545;
+    font-weight: 500;
+    line-height: 1.4;
+    padding: 0.25rem 0;
+}
+
+/* Estilos para campos requeridos */
+.form-group label[for] {
+    position: relative;
+}
+
+.form-group label[for]:after {
+    content: '';
+    /* Sin asterisco por defecto */
+}
+
+/* Agregar asterisco rojo para campos requeridos específicos */
+.form-group label[for="cedula"]:after,
+.form-group label[for="nombre_completo"]:after,
+.form-group label[for="email"]:after,
+.form-group label[for="telefono"]:after,
+.form-group label[for="cargo"]:after,
+.form-group label[for="tipo_contrato"]:after,
+.form-group label[for="departamento"]:after,
+.form-group label[for="municipio"]:after {
+    content: ' *';
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* Estilos para el toast de error con lista */
+.toast-container .toast.toast-error {
+    background-color: #f8d7da !important;
+    border-left: 4px solid #dc3545 !important;
+    color: #721c24 !important;
+    max-width: 450px !important;
+}
+
+.toast-container .toast.toast-error .toast-body,
+.toast-container .toast.toast-error span {
+    white-space: pre-line !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    line-height: 1.5 !important;
+    font-size: 0.9rem !important;
+}
+
+/* =============================================== */
+/* DISEÑO VERTICAL MODERNO PARA LISTA DE EMPLEADOS */
+/* =============================================== */
+
+/* Ajustar el contenedor de página para máximo aprovechamiento */
+.page-content {
+    padding: 0.5rem !important;
+}
+
+.employees-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Header moderno */
+.employees-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    box-shadow: 0 10px 40px rgba(79, 70, 229, 0.3);
+    width: 100%;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.header-title {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.header-subtitle {
+    margin: 0.25rem 0 0 0;
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+
+.header-stats {
+    text-align: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Estado vacío */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: white;
+    font-size: 2rem;
+}
+
+.empty-title {
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.empty-message {
+    color: #6b7280;
+    margin-bottom: 2rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn-add-employee {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
+}
+
+.btn-add-employee:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(79, 70, 229, 0.6);
+    color: white;
+}
+
+/* =============================================== */
+/* LISTA HORIZONTAL COMPACTA DE EMPLEADOS */
+/* =============================================== */
+
+.employees-list-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}
+
+.employee-card-unified {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+    border: 1px solid #e2e8f0;
+    width: 100%;
+    min-height: 80px;
+}
+
+.employee-card-unified:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-color: #cbd5e1;
+}
+
+/* Contenido principal en una sola fila horizontal */
+.employee-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+    min-height: 50px;
+}
+
+/* Avatar compacto */
+.employee-avatar-compact {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+    flex-shrink: 0;
+}
+
+.avatar-initials {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.status-indicator.status-activo {
+    background: #10b981;
+}
+
+.status-indicator.status-inactivo {
+    background: #ef4444;
+}
+
+.status-indicator.status-liquidado {
+    background: #6b7280;
+}
+
+/* Información del empleado en línea horizontal */
+.employee-info-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.employee-name-inline {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 150px;
+    flex-shrink: 0;
+}
+
+.employee-position-inline {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin: 0;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 120px;
+    flex-shrink: 0;
+}
+
+/* Campos de datos compactos */
+.employee-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 100px;
+    flex-shrink: 0;
+}
+
+.field-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+
+.field-value {
+    font-size: 0.85rem;
+    color: #1f2937;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Badges compactos */
+.employee-badges-compact {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.badge-primary {
+    background: #3b82f6;
+    color: white;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-secondary {
+    background: #64748b;
+    color: white;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.badge-status {
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-status.status-activo {
+    background: #10b981;
+    color: white;
+}
+
+.badge-status.status-inactivo {
+    background: #ef4444;
+    color: white;
+}
+
+.badge-status.status-liquidado {
+    background: #6b7280;
+    color: white;
+}
+
+/* Acciones del empleado compactas */
+.employee-actions-inline {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.action-view {
+    background: #06b6d4;
+    color: white;
+}
+
+.action-view:hover {
+    background: #0891b2;
+    transform: scale(1.05);
+}
+
+.action-edit {
+    background: #f59e0b;
+    color: white;
+}
+
+.action-edit:hover {
+    background: #d97706;
+    transform: scale(1.05);
+}
+
+.action-delete {
+    background: #ef4444;
+    color: white;
+}
+
+.action-delete:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+/* =============================================== */
+/* DISEÑO RESPONSIVO HORIZONTAL COMPACTO */
+/* =============================================== */
+
+/* Tablets (768px - 1024px) */
+@media (max-width: 1024px) {
+    .employee-info-horizontal {
+        gap: 1.5rem;
+    }
+    
+    .employee-field {
+        min-width: 80px;
+    }
+    
+    .employee-name-inline {
+        min-width: 120px;
+        font-size: 1rem;
+    }
+    
+    .employee-position-inline {
+        min-width: 100px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Móviles grandes (481px - 767px) */
+@media (max-width: 767px) {
+    .page-content {
+        padding: 0.25rem !important;
+    }
+    
+    .employees-header {
+        text-align: center;
+        flex-direction: column;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+    }
+    
+    .header-title {
+        font-size: 1.5rem;
+    }
+    
+    .employees-list-vertical {
+        gap: 0.5rem;
+    }
+    
+    .employee-card-unified {
+        padding: 1rem;
+        border-radius: 8px;
+        min-height: 70px;
+    }
+    
+    .employee-content {
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .employee-avatar-compact {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+    
+    .employee-info-horizontal {
+        gap: 1rem;
+        flex-wrap: wrap;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .employee-name-inline {
+        min-width: 100px;
+        font-size: 0.95rem;
+    }
+    
+    .employee-position-inline {
+        min-width: 80px;
+        font-size: 0.8rem;
+    }
+    
+    .employee-field {
+        min-width: 70px;
+    }
+    
+    .field-label {
+        font-size: 0.65rem;
+    }
+    
+    .field-value {
+        font-size: 0.8rem;
+    }
+    
+    .employee-badges-compact {
+        gap: 0.25rem;
+    }
+    
+    .badge-primary,
+    .badge-secondary,
+    .badge-status {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.65rem;
+    }
+    
+    .action-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+    }
+    
+    .employee-actions-inline {
+        gap: 0.25rem;
+    }
+}
+
+/* Móviles pequeños (320px - 480px) */
+@media (max-width: 480px) {
+    .employee-content {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .employee-avatar-compact {
+        width: 36px;
+        height: 36px;
+        font-size: 0.8rem;
+        align-self: flex-start;
+    }
+    
+    .employee-info-horizontal {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+    
+    .employee-name-inline {
+        min-width: 0;
+        font-size: 0.9rem;
+    }
+    
+    .employee-position-inline {
+        min-width: 0;
+        font-size: 0.75rem;
+    }
+    
+    .employee-field {
+        min-width: 0;
+        width: 100%;
+    }
+    
+    .employee-badges-compact {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+    
+    .employee-actions-inline {
+        justify-content: flex-end;
+        margin-left: 0;
+    }
+}
+
+/* Para pantallas muy grandes */
+@media (min-width: 1600px) {
+    .employees-container {
+        max-width: none;
+        margin: 0;
+    }
+    
+    .employee-info-horizontal {
+        gap: 3rem;
+    }
+    
+    .employee-field {
+        min-width: 120px;
+    }
 }

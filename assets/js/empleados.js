@@ -35,10 +35,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             document.getElementById('modal-titulo').textContent = 'Ingreso Nuevo Empleado';
             form.reset();
-            // Asegurar que la primera pestaña esté activa al abrir
-            activarPestana('laboral');
             // Recalcular valores por defecto
-            inicializarCalculos(); 
+            inicializarCalculos();
+            
+            // Resetear municipios al crear nuevo empleado
+            if (typeof resetearMunicipios === 'function') {
+                setTimeout(() => resetearMunicipios(), 50);
+            }
+        }
+        
+        // Inicializar las pestañas correctamente
+        if (typeof inicializarModalEmpleado === 'function') {
+            setTimeout(() => inicializarModalEmpleado(), 100);
         }
     };
 
@@ -81,13 +89,179 @@ document.addEventListener('DOMContentLoaded', () => {
             feed.textContent = message;
         }
 
-        form.addEventListener('submit', function(e) {
+        function validateRequiredFields() {
+            const requiredFields = {
+                'cedula': 'Cédula',
+                'nombre_completo': 'Nombre completo', 
+                'email': 'Correo electrónico',
+                'telefono': 'Teléfono',
+                'cargo': 'Cargo',
+                'tipo_contrato': 'Tipo de contrato',
+                'departamento': 'Departamento',
+                'municipio': 'Municipio'
+            };
+            
+            const missingFields = [];
+            const missingFieldsBySection = {};
+            let hasErrors = false;
+            
+            Object.keys(requiredFields).forEach(fieldName => {
+                const field = form.querySelector(`[name="${fieldName}"]`);
+                if (field && (!field.value || field.value.trim() === '')) {
+                    missingFields.push(requiredFields[fieldName]);
+                    showFieldError(fieldName, `${requiredFields[fieldName]} es obligatorio`);
+                    hasErrors = true;
+                    
+                    // Identificar en qué sección está el campo
+                    const tabContent = field.closest('.tab-content-modal');
+                    if (tabContent) {
+                        const sectionId = tabContent.id;
+                        const sectionName = getSectionName(sectionId);
+                        if (!missingFieldsBySection[sectionName]) {
+                            missingFieldsBySection[sectionName] = [];
+                        }
+                        missingFieldsBySection[sectionName].push(requiredFields[fieldName]);
+                    }
+                }
+            });
+            
+            // Validación específica por tipo de contrato
+            const tipoContrato = form.querySelector('[name="tipo_contrato"]')?.value;
+            if (tipoContrato === 'OPS') {
+                const valorEvento = form.querySelector('[name="valor_por_evento"]');
+                if (valorEvento && (!valorEvento.value || valorEvento.value.trim() === '')) {
+                    missingFields.push('Valor por evento (requerido para contratos OPS)');
+                    showFieldError('valor_por_evento', 'Valor por evento es obligatorio para contratos OPS');
+                    hasErrors = true;
+                    
+                    const tabContent = valorEvento.closest('.tab-content-modal');
+                    if (tabContent) {
+                        const sectionId = tabContent.id;
+                        const sectionName = getSectionName(sectionId);
+                        if (!missingFieldsBySection[sectionName]) {
+                            missingFieldsBySection[sectionName] = [];
+                        }
+                        missingFieldsBySection[sectionName].push('Valor por evento (OPS)');
+                    }
+                }
+            } else if (tipoContrato === 'LAB') {
+                const mesada = form.querySelector('[name="mesada"]');
+                if (mesada && (!mesada.value || mesada.value.trim() === '')) {
+                    missingFields.push('Mesada (requerida para contratos LAB)');
+                    showFieldError('mesada', 'Mesada es obligatoria para contratos LAB');
+                    hasErrors = true;
+                    
+                    const tabContent = mesada.closest('.tab-content-modal');
+                    if (tabContent) {
+                        const sectionId = tabContent.id;
+                        const sectionName = getSectionName(sectionId);
+                        if (!missingFieldsBySection[sectionName]) {
+                            missingFieldsBySection[sectionName] = [];
+                        }
+                        missingFieldsBySection[sectionName].push('Mesada (LAB)');
+                    }
+                }
+            }
+            
+            if (hasErrors) {
+                let message = 'Faltan campos obligatorios:\n\n';
+                
+                // Agrupar por sección
+                Object.keys(missingFieldsBySection).forEach(section => {
+                    message += `📋 ${section}:\n`;
+                    missingFieldsBySection[section].forEach(field => {
+                        message += `  • ${field}\n`;
+                    });
+                    message += '\n';
+                });
+                
+                // Si no se pudieron agrupar por sección, mostrar lista simple
+                if (Object.keys(missingFieldsBySection).length === 0) {
+                    message = 'Faltan los siguientes campos obligatorios:\n• ';
+                    message += missingFields.join('\n• ');
+                }
+                
+                return { valid: false, message: message.trim() };
+            }
+            
+            return { valid: true, message: '' };
+        }
+
+        function getSectionName(sectionId) {
+            const sectionNames = {
+                'informacion-personal': 'Información Personal',
+                'informacion-laboral': 'Información Laboral', 
+                'ubicacion': 'Ubicación',
+                'pagos': 'Información de Pagos',
+                'bancaria': 'Información Bancaria',
+                'aportes': 'Aportes y Seguridad Social',
+                'capacitaciones': 'Capacitaciones'
+            };
+        return sectionNames[sectionId] || 'Información General';
+    }
+
+    // Función para manejar dropdown de acciones en tarjetas de empleados
+    window.toggleDropdown = function(button) {
+        const dropdown = button.nextElementSibling;
+        const isVisible = dropdown.classList.contains('show');
+        
+        // Cerrar todos los dropdowns abiertos
+        document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+            menu.classList.remove('show');
+        });
+        
+        // Toggle del dropdown actual
+        if (!isVisible) {
+            dropdown.classList.add('show');
+        }
+    };
+
+    // Cerrar dropdowns al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.dropdown')) {
+            document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                menu.classList.remove('show');
+            });
+        }
+    });        form.addEventListener('submit', function(e) {
             // Limpieza previa
             clearFieldErrors();
 
+            // Validación específica de campos obligatorios
+            const validation = validateRequiredFields();
+            if (!validation.valid) {
+                e.preventDefault();
+                mostrarToast(validation.message, 'error');
+                
+                // Navegar a la primera sección con errores y hacer scroll al primer campo
+                const firstError = form.querySelector('.is-invalid');
+                if (firstError) {
+                    // Encontrar la sección del primer campo con error
+                    const tabContent = firstError.closest('.tab-content-modal');
+                    if (tabContent) {
+                        // Hacer clic en el tab correspondiente
+                        const tabId = tabContent.id;
+                        const correspondingTab = document.querySelector(`[data-tab="${tabId}"]`);
+                        if (correspondingTab) {
+                            correspondingTab.click();
+                            // Esperar un poco para que se complete la transición del tab
+                            setTimeout(() => {
+                                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                firstError.focus();
+                            }, 100);
+                        }
+                    } else {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstError.focus();
+                    }
+                }
+                return;
+            }
+
+            // Validación HTML5 adicional
             if (!form.checkValidity()) {
                 e.preventDefault();
-                mostrarToast('Por favor complete todos los campos obligatorios.', 'error');
+                mostrarToast('Por favor revise los campos marcados en rojo.', 'error');
                 return;
             }
 
@@ -105,13 +279,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 fetch(form.action || 'empleados.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: { 
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     body: params.toString(),
                     credentials: 'same-origin'
                 }).then(async res => {
                     const txt = await res.text();
                     let json = null;
-                    try { json = JSON.parse(txt); } catch (e) { /* no JSON */ }
+                    try { 
+                        json = JSON.parse(txt); 
+                    } catch (e) { 
+                        console.error('Respuesta UPDATE no es JSON válido:', txt);
+                        console.error('Error de parsing UPDATE:', e);
+                    }
+                    
                     if (!res.ok) {
                         // Status 400 esperado para errores de validación
                         if (json && json.error) {
@@ -141,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (json.error.toLowerCase().includes('correo') || json.error.toLowerCase().includes('email')) showFieldError('email', json.error);
                     } else {
                         // Fallback: mostrar texto plano si no es JSON
+                        console.error('Respuesta UPDATE inesperada del servidor:', txt);
                         const bodyText = txt || 'Respuesta inesperada del servidor';
                         mostrarToast(bodyText, 'error');
                     }
@@ -159,13 +343,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 fetch(form.action || 'empleados.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/x-www-form-urlencoded', 
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     body: params.toString(),
                     credentials: 'same-origin'
                 }).then(async res => {
                     const txt = await res.text();
                     let json = null;
-                    try { json = JSON.parse(txt); } catch (e) { }
+                    try { 
+                        json = JSON.parse(txt); 
+                    } catch (e) { 
+                        console.error('Respuesta no es JSON válido:', txt);
+                        console.error('Error de parsing:', e);
+                    }
+                    
                     if (!res.ok) {
                         if (json && json.error) {
                             mostrarToast(json.error, 'error');
@@ -176,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         return;
                     }
+                    
                     if (json && json.success) {
                         mostrarToast('Empleado creado correctamente', 'success');
                         if (typeof cerrarModalEmpleado === 'function') cerrarModalEmpleado();
@@ -183,6 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (json && json.error) {
                         mostrarToast(json.error, 'error');
                     } else {
+                        console.error('Respuesta inesperada del servidor:', txt);
                         mostrarToast('Respuesta inesperada del servidor', 'error');
                     }
                 }).catch(err => {
@@ -194,10 +390,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ===============================================
-    // 2. LÓGICA DE PESTAÑAS (TABS)
+    // 2. LÓGICA DE PESTAÑAS (TABS) - Solo para pestañas NO del modal
     // ===============================================
 
-    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabButtons = document.querySelectorAll('.tab-button:not(#modal-empleado .tab-button)');
     const tabContents = document.querySelectorAll('.tab-content');
 
     function activarPestana(targetTab) {
@@ -218,10 +414,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Solo añadir event listeners a pestañas que NO están en el modal
     tabButtons.forEach(button => {
         button.addEventListener('click', (event) => {
             const targetTab = event.target.getAttribute('data-tab');
-            activarPestana(targetTab);
+            if (targetTab) { // Solo si tiene data-tab attribute
+                activarPestana(targetTab);
+            }
         });
     });
 
@@ -421,7 +620,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Enviar POST con _action=delete
             fetch('empleados.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: `_action=delete&id=${encodeURIComponent(id)}`
             }).then(r => r.json()).then(resp => {
                 if (resp && resp.success) {

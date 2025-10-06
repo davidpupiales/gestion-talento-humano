@@ -345,16 +345,40 @@ function getCargoOptions() {
 
 /** Obtiene las opciones para el campo MUNICIPIO */
 function getMunicipioOptions() {
-    return [
-        'PASTO', 'IPIALES', 'ALBÁN', 'ALDANA', 'ANCUYA', 'ARBOLEDA', 'BARBACOAS', 'BELÉN', 'BUESACO', 'CHACHAGÜÍ',
-        'COLÓN', 'CONSACÁ', 'CONTADERO', 'CÓRDOBA', 'CUASPUD', 'CUMBAL', 'CUMBITARA', 'EL CHARCO', 'EL PEÑOL',
-        'EL ROSARIO', 'EL TABLÓN DE GÓMEZ', 'EL TAMBO', 'FRANCISCO PIZARRO', 'FUNES', 'GUACHUCAL', 'GUAITARILLA',
-        'GUALMATÁN', 'ILES', 'IMUÉS', 'LA CRUZ', 'LA FLORIDA', 'LA LLANADA', 'LA TOLA', 'LA UNIÓN', 'LEIVA',
-        'LINARES', 'LOS ANDES', 'MAGÜÍ PAYÁN', 'MALLAMA', 'MOSQUERA', 'NARIÑO', 'OLAYA HERRERA', 'OSPINA',
-        'POLICARPA', 'POTOSÍ', 'PROVIDENCIA', 'PUERRES', 'PUPIALES', 'RICAURTE', 'ROBERTO PAYÁN', 'SAMANIEGO',
-        'SANDONÁ', 'SAN BERNARDO', 'SAN LORENZO', 'SAN PABLO', 'SAN PEDRO DE CARTAGO', 'SANTA BÁRBARA',
-        'SANTACRUZ', 'SAPUYES', 'TAMINANGO', 'TANGUA', 'TUMACO', 'TUQUERRES', 'YACUANQUER', 'ALTO PUTUMAYO'
+    // Esta función ahora retorna los municipios de Nariño por defecto
+    return getMunicipiosPorDepartamento('NARIÑO');
+}
+
+/** Obtiene los municipios por departamento específico */
+function getMunicipiosPorDepartamento($departamento) {
+    $municipios = [
+        'NARIÑO' => [
+            'PASTO', 'IPIALES', 'ALBÁN', 'ALDANA', 'ANCUYA', 'ARBOLEDA', 'BARBACOAS', 'BELÉN', 'BUESACO', 'CHACHAGÜÍ',
+            'COLÓN', 'CONSACÁ', 'CONTADERO', 'CÓRDOBA', 'CUASPUD', 'CUMBAL', 'CUMBITARA', 'EL CHARCO', 'EL PEÑOL',
+            'EL ROSARIO', 'EL TABLÓN DE GÓMEZ', 'EL TAMBO', 'FRANCISCO PIZARRO', 'FUNES', 'GUACHUCAL', 'GUAITARILLA',
+            'GUALMATÁN', 'ILES', 'IMUÉS', 'LA CRUZ', 'LA FLORIDA', 'LA LLANADA', 'LA TOLA', 'LA UNIÓN', 'LEIVA',
+            'LINARES', 'LOS ANDES', 'MAGÜÍ PAYÁN', 'MALLAMA', 'MOSQUERA', 'NARIÑO', 'OLAYA HERRERA', 'OSPINA',
+            'POLICARPA', 'POTOSÍ', 'PROVIDENCIA', 'PUERRES', 'PUPIALES', 'RICAURTE', 'ROBERTO PAYÁN', 'SAMANIEGO',
+            'SANDONÁ', 'SAN BERNARDO', 'SAN LORENZO', 'SAN PABLO', 'SAN PEDRO DE CARTAGO', 'SANTA BÁRBARA',
+            'SANTACRUZ', 'SAPUYES', 'TAMINANGO', 'TANGUA', 'TUMACO', 'TUQUERRES', 'YACUANQUER', 'ALTO PUTUMAYO'
+        ],
+        'VALLE' => [
+            'ALCALÁ', 'ANDALUCÍA', 'ANSERMANUEVO', 'ARGELIA', 'BOLÍVAR', 'BUENAVENTURA', 'BUGA', 'BUGALAGRANDE',
+            'CAICEDONIA', 'CALI', 'CALIMA (EL DARIÉN)', 'CANDELARIA', 'CARTAGO', 'DAGUA', 'EL ÁGUILA', 'EL CAIRO',
+            'EL CERRITO', 'EL DOVIO', 'FLORIDA', 'GINEBRA', 'GUACARÍ', 'JAMUNDÍ', 'LA CUMBRE', 'LA UNIÓN',
+            'LA VICTORIA', 'OBANDO', 'PALMIRA', 'PRADERA', 'RESTREPO', 'RIOFRÍO', 'ROLDANILLO', 'SAN PEDRO',
+            'SEVILLA', 'TORO', 'TRUJILLO', 'TULUÁ', 'ULLOA', 'VERSALLES', 'VIJES', 'YOTOCO', 'YUMBO', 'ZARZAL'
+        ],
+        'CAUCA' => [
+            'ALMAGUER', 'ARGELIA', 'BALBOA', 'BOLÍVAR', 'BUENOS AIRES', 'CAJIBÍO', 'CALDONO', 'CALOTO', 'CORINTO',
+            'EL TAMBO', 'FLORENCIA', 'GUACHENÉ', 'GUAPI', 'INZÁ', 'JAMBALÓ', 'LA SIERRA', 'LA VEGA', 'LÓPEZ DE MICAY',
+            'MERCADERES', 'MIRANDA', 'MORALES', 'PADILLA', 'PÁEZ', 'PATÍA', 'PIAMONTE', 'PIENDAMÓ', 'POPAYÁN',
+            'PUERTO TEJADA', 'PURACÉ', 'ROSAS', 'SAN SEBASTIÁN', 'SANTANDER DE QUILICHAO', 'SANTA ROSA', 'SILVIA',
+            'SOTARÁ', 'SUÁREZ', 'SUCRE', 'TIMBÍO', 'TIMBIQUÍ', 'TORIBÍO', 'TOTORÓ', 'VILLA RICA'
+        ]
     ];
+    
+    return isset($municipios[$departamento]) ? $municipios[$departamento] : [];
 }
 
 /** Obtiene las opciones para el campo ESTADO (MIGRADA DE EMPLEADOS.PHP) */
