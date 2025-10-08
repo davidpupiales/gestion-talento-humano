@@ -604,11 +604,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // =========================================================================
-// INICIO: Bloque de Carga de Datos (SELECT)
+// INICIO: Bloque de Carga de Datos con Paginación
 // =========================================================================
 
-// 1. Cargar los empleados desde la base de datos
-$sql_select = "SELECT * FROM empleados WHERE estado != 'LIQUIDADO' ORDER BY apellido_completo, nombre_completo";
+// Configuración de paginación
+$empleados_por_pagina = 10;
+$pagina_actual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+$pagina_actual = max(1, $pagina_actual); // Asegurar que la página sea al menos 1
+
+// Calcular OFFSET para la consulta
+$offset = ($pagina_actual - 1) * $empleados_por_pagina;
+
+// 1. Primero contar el total de empleados
+$sql_count = "SELECT COUNT(*) as total FROM empleados WHERE estado != 'LIQUIDADO'";
+$result_count = $db->query($sql_count);
+$total_empleados = $result_count ? $result_count[0]['total'] : 0;
+
+// Calcular total de páginas
+$total_paginas = ceil($total_empleados / $empleados_por_pagina);
+
+// 2. Cargar los empleados de la página actual
+$sql_select = "SELECT * FROM empleados WHERE estado != 'LIQUIDADO' ORDER BY nombre_completo, apellido_completo LIMIT $empleados_por_pagina OFFSET $offset";
 $empleados = $db->query($sql_select); 
 
 if ($empleados === false) {
@@ -618,7 +634,7 @@ if ($empleados === false) {
 }
 
 // =========================================================================
-// FIN: Bloque de Carga de Datos
+// FIN: Bloque de Carga de Datos con Paginación
 // =========================================================================
 
 ?>
@@ -689,22 +705,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
     
     <div class="metrics-grid">
         <div class="metric-card">
-            <div class="metric-value"><?php echo count($empleados); ?></div>
+            <div class="metric-value"><?php echo $total_empleados; ?></div>
             <div class="metric-label">Total Empleados</div>
             <div class="metric-icon"><i class="fas fa-users"></i></div>
         </div>
         <div class="metric-card success">
-            <div class="metric-value">0</div> 
+            <div class="metric-value"><?php 
+                // Para el cálculo de departamentos, necesitamos todos los empleados
+                $sql_dept = "SELECT DISTINCT departamento FROM empleados WHERE estado != 'LIQUIDADO' AND departamento IS NOT NULL AND departamento != ''";
+                $departamentos_result = $db->query($sql_dept);
+                echo $departamentos_result ? count($departamentos_result) : 0;
+            ?></div> 
             <div class="metric-label">Departamentos</div>
             <div class="metric-icon"><i class="fas fa-building"></i></div>
         </div>
         <div class="metric-card warning">
-             <div class="metric-value">0%</div> 
+             <div class="metric-value"><?php 
+                // Calcular porcentaje de empleados activos
+                $sql_activos = "SELECT COUNT(*) as activos FROM empleados WHERE estado != 'LIQUIDADO' AND LOWER(estado) = 'activo'";
+                $activos_result = $db->query($sql_activos);
+                $activos_count = $activos_result ? $activos_result[0]['activos'] : 0;
+                echo $total_empleados > 0 ? round(($activos_count / $total_empleados) * 100) : 0;
+             ?>%</div> 
             <div class="metric-label">Empleados Activos</div>
             <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
         </div>
         <div class="metric-card danger">
-             <div class="metric-value">0</div> 
+             <div class="metric-value"><?php 
+                // Empleados nuevos este mes
+                $este_mes = date('Y-m');
+                $sql_nuevos = "SELECT COUNT(*) as nuevos FROM empleados WHERE estado != 'LIQUIDADO' AND DATE_FORMAT(fecha_ingreso, '%Y-%m') = '$este_mes'";
+                $nuevos_result = $db->query($sql_nuevos);
+                echo $nuevos_result ? $nuevos_result[0]['nuevos'] : 0;
+             ?></div> 
             <div class="metric-label">Nuevos Este Mes</div>
             <div class="metric-icon"><i class="fas fa-user-plus"></i></div>
         </div>
@@ -736,7 +769,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
             </div>
             <h3 class="empty-title">No hay empleados registrados</h3>
             <p class="empty-message">Comienza agregando empleados al sistema para gestionar tu equipo de trabajo.</p>
-            <button class="btn btn-primary btn-add-employee" onclick="abrirModal()">
+            <button class="btn btn-primary btn-add-employee" onclick="abrirModalEmpleado()">
                 <i class="fas fa-plus"></i> Agregar Primer Empleado
             </button>
         </div>
@@ -750,18 +783,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
                     <!-- Avatar compacto -->
                     <div class="employee-avatar-compact">
                         <span class="avatar-initials">
-                            <?php echo strtoupper(substr(($empleado['nombre_completo'] ?? ''), 0, 1) . substr(($empleado['apellido_completo'] ?? ''), 0, 1)); ?>
+                            <?php 
+                            $nombre_completo = $empleado['nombre_completo'] ?? '';
+                            $palabras = explode(' ', trim($nombre_completo));
+                            $iniciales = '';
+                            if (count($palabras) >= 2) {
+                                $iniciales = strtoupper(substr($palabras[0], 0, 1) . substr($palabras[1], 0, 1));
+                            } else if (count($palabras) == 1) {
+                                $iniciales = strtoupper(substr($palabras[0], 0, 2));
+                            } else {
+                                $iniciales = 'NA';
+                            }
+                            echo $iniciales;
+                            ?>
                         </span>
                         <div class="status-indicator status-<?php echo strtolower($empleado['estado']); ?>"></div>
                     </div>
                     
                     <!-- Información horizontal del empleado -->
                     <div class="employee-info-horizontal">
-                        <div class="employee-name-inline">
-                            <?php echo htmlspecialchars(trim(($empleado['nombre_completo'] ?? '') . ' ' . ($empleado['apellido_completo'] ?? ''))); ?>
+                        <!-- Nombre y cargo en la primera columna (más ancha) -->
+                        <div class="employee-main-info">
+                            <div class="employee-name-inline" title="<?php echo htmlspecialchars($empleado['nombre_completo'] ?? 'Sin nombre'); ?>">
+                                <?php echo htmlspecialchars($empleado['nombre_completo'] ?? 'Sin nombre'); ?>
+                            </div>
+                            <div class="employee-position-inline" title="<?php echo htmlspecialchars($empleado['cargo'] ?? 'Sin cargo'); ?>">
+                                <?php echo htmlspecialchars($empleado['cargo'] ?? 'Sin cargo'); ?>
+                            </div>
                         </div>
-                        <div class="employee-position-inline"><?php echo htmlspecialchars($empleado['cargo']); ?></div>
                         
+                        <!-- Campos organizados en columnas -->
                         <div class="employee-field">
                             <div class="field-label">Cédula</div>
                             <div class="field-value"><?php echo htmlspecialchars($empleado['cedula']); ?></div>
@@ -769,7 +820,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
                         
                         <div class="employee-field">
                             <div class="field-label">Email</div>
-                            <div class="field-value"><?php echo htmlspecialchars($empleado['email']); ?></div>
+                            <div class="field-value email-field" title="<?php echo htmlspecialchars($empleado['email']); ?>">
+                                <?php echo htmlspecialchars($empleado['email']); ?>
+                            </div>
                         </div>
                         
                         <div class="employee-field">
@@ -779,7 +832,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
                         
                         <div class="employee-field">
                             <div class="field-label">Ubicación</div>
-                            <div class="field-value"><?php echo htmlspecialchars($empleado['departamento']); ?></div>
+                            <div class="field-value" title="<?php echo htmlspecialchars($empleado['departamento']); ?>">
+                                <?php echo htmlspecialchars($empleado['departamento']); ?>
+                            </div>
                         </div>
                         
                         <div class="employee-field">
@@ -790,8 +845,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
                     
                     <!-- Badges compactos -->
                     <div class="employee-badges-compact">
-                        <span class="badge-primary"><?php echo strtoupper($empleado['tipo_contrato'] ?? 'N/A'); ?></span>
-                        <span class="badge-status status-<?php echo strtolower($empleado['estado']); ?>">
+                        <span class="badge-primary" title="<?php echo htmlspecialchars($empleado['tipo_contrato'] ?? 'N/A'); ?>">
+                            <?php echo strtoupper($empleado['tipo_contrato'] ?? 'N/A'); ?>
+                        </span>
+                        <span class="badge-status status-<?php echo strtolower($empleado['estado']); ?>" title="<?php echo htmlspecialchars($empleado['estado']); ?>">
                             <?php echo strtoupper($empleado['estado']); ?>
                         </span>
                     </div>
@@ -814,6 +871,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)) {
             </div>
             <?php endforeach; ?>
         </div>
+        
+        <!-- Controles de Paginación -->
+        <?php if ($total_paginas > 1): ?>
+        <div class="pagination-container">
+            <div class="pagination-info">
+                <span class="pagination-text">
+                    Mostrando <?php echo count($empleados); ?> de <?php echo $total_empleados; ?> empleados
+                    (Página <?php echo $pagina_actual; ?> de <?php echo $total_paginas; ?>)
+                </span>
+            </div>
+            
+            <div class="pagination-controls">
+                <?php if ($pagina_actual > 1): ?>
+                    <a href="?pagina=1" class="pagination-btn pagination-first" title="Primera página">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                    <a href="?pagina=<?php echo $pagina_actual - 1; ?>" class="pagination-btn pagination-prev" title="Página anterior">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                <?php endif; ?>
+                
+                <?php 
+                // Mostrar números de página (máximo 5 páginas visibles)
+                $inicio = max(1, $pagina_actual - 2);
+                $fin = min($total_paginas, $pagina_actual + 2);
+                
+                for ($i = $inicio; $i <= $fin; $i++): 
+                ?>
+                    <a href="?pagina=<?php echo $i; ?>" 
+                       class="pagination-btn pagination-number <?php echo $i == $pagina_actual ? 'active' : ''; ?>">
+                        <?php echo $i; ?>
+                    </a>
+                <?php endfor; ?>
+                
+                <?php if ($pagina_actual < $total_paginas): ?>
+                    <a href="?pagina=<?php echo $pagina_actual + 1; ?>" class="pagination-btn pagination-next" title="Página siguiente">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                    <a href="?pagina=<?php echo $total_paginas; ?>" class="pagination-btn pagination-last" title="Última página">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
         
         <?php endif; ?>
     </div>

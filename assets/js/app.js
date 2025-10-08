@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
 // Función principal de inicialización
 function initializeApp() {
   setupMobileMenu()
-  setupNotifications()
   setupTooltips()
   setupFormValidation()
   console.log("[HRMS] Sistema inicializado correctamente")
@@ -39,11 +38,25 @@ function setupMobileMenu() {
     document.body.appendChild(overlay)
   }
 
+  // Asegurar que el sidebar esté visible en pantallas de escritorio
+  function ensureDesktopSidebar() {
+    const sidebar = document.querySelector(".sidebar")
+    if (sidebar && window.innerWidth > 768) {
+      sidebar.classList.remove("mobile-open")
+      sidebar.style.transform = ""
+      sidebarOpen = false
+    }
+  }
+
+  // Ejecutar inmediatamente
+  ensureDesktopSidebar()
+
   // Cerrar menú al cambiar tamaño de ventana
   window.addEventListener("resize", () => {
     if (window.innerWidth > 768 && sidebarOpen) {
       closeMobileMenu()
     }
+    ensureDesktopSidebar()
   })
 }
 
@@ -78,36 +91,6 @@ function closeMobileMenu() {
   document.body.style.overflow = ""
 }
 
-// ===== SISTEMA DE NOTIFICACIONES =====
-function setupNotifications() {
-  const notificationTrigger = document.querySelector(".notification-trigger")
-  if (notificationTrigger) {
-    notificationTrigger.addEventListener("click", toggleNotifications)
-  }
-
-  // Cerrar notificaciones al hacer clic fuera
-  document.addEventListener("click", (e) => {
-    const dropdown = document.querySelector(".notifications-dropdown")
-    const trigger = document.querySelector(".notification-trigger")
-
-    if (
-      dropdown &&
-      dropdown.classList.contains("show") &&
-      !dropdown.contains(e.target) &&
-      !trigger.contains(e.target)
-    ) {
-      dropdown.classList.remove("show")
-    }
-  })
-}
-
-function toggleNotifications() {
-  const dropdown = document.querySelector(".notifications-dropdown")
-  if (dropdown) {
-    dropdown.classList.toggle("show")
-  }
-}
-
 // ===== SISTEMA DE PESTAÑAS =====
 function cambiarPestana(pestana, boton) {
   // Ocultar todas las pestañas
@@ -132,43 +115,147 @@ function cambiarPestana(pestana, boton) {
   }
 }
 
+// Función para forzar estilos correctos en notificaciones
+function forceNotificationStyles() {
+  // Observer para detectar nuevos elementos toast
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === 1) { // Element node
+            // Buscar toasts en el nuevo nodo
+            const toasts = node.querySelectorAll ? node.querySelectorAll('[class*="toast"], [class*="notification"], [class*="alert"]') : [];
+            const isToast = node.className && (
+              node.className.includes('toast') || 
+              node.className.includes('notification') || 
+              node.className.includes('alert')
+            );
+            
+            if (isToast) {
+              forceToastStyle(node);
+            }
+            
+            toasts.forEach(forceToastStyle);
+          }
+        });
+      }
+    });
+  });
+  
+  // Observar cambios en el body
+  observer.observe(document.body, { childList: true, subtree: true });
+  
+  // Aplicar estilos a toasts existentes
+  document.querySelectorAll('[class*="toast"], [class*="notification"], [class*="alert"]').forEach(forceToastStyle);
+}
+
+function forceToastStyle(element) {
+  const className = element.className.toLowerCase();
+  
+  let config = {
+    bg: 'linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%)',
+    color: '#0c4a6e',
+    borderLeft: '#06b6d4'
+  };
+  
+  if (className.includes('success')) {
+    config = {
+      bg: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+      color: '#065f46',
+      borderLeft: '#10b981'
+    };
+  } else if (className.includes('error') || className.includes('danger')) {
+    config = {
+      bg: 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)',
+      color: '#7f1d1d',
+      borderLeft: '#ef4444'
+    };
+  } else if (className.includes('warning')) {
+    config = {
+      bg: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+      color: '#92400e',
+      borderLeft: '#f59e0b'
+    };
+  }
+  
+  // Aplicar estilos forzadamente
+  element.style.setProperty('background', config.bg, 'important');
+  element.style.setProperty('color', config.color, 'important');
+  element.style.setProperty('border-left', `4px solid ${config.borderLeft}`, 'important');
+  element.style.setProperty('border-radius', '8px', 'important');
+  element.style.setProperty('box-shadow', '0 10px 25px rgba(0, 0, 0, 0.15)', 'important');
+  element.style.setProperty('font-weight', '500', 'important');
+  element.style.setProperty('font-size', '0.9rem', 'important');
+  element.style.setProperty('line-height', '1.5', 'important');
+  element.style.setProperty('padding', '12px 16px', 'important');
+}
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', forceNotificationStyles);
+
 // ===== SISTEMA DE TOAST/ALERTAS =====
 function mostrarToast(mensaje, tipo = "info", duracion = 3000) {
-  // Crear contenedor de toasts si no existe
-  let container = document.querySelector(".toast-container")
-  if (!container) {
-    container = document.createElement("div")
-    container.className = "toast-container"
-    container.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        `
-    document.body.appendChild(container)
-  }
-
-  // Crear toast
+  // Crear toast directamente sin contenedor
   const toast = document.createElement("div")
   toast.className = `toast toast-${tipo}`
+  
+  // Definir colores según el tipo
+  const colorConfig = {
+    success: {
+      bg: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+      border: '#a7f3d0',
+      borderLeft: '#10b981',
+      color: '#065f46',
+      iconColor: '#10b981'
+    },
+    error: {
+      bg: 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)',
+      border: '#fca5a5',
+      borderLeft: '#ef4444',
+      color: '#7f1d1d',
+      iconColor: '#ef4444'
+    },
+    warning: {
+      bg: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+      border: '#fde68a',
+      borderLeft: '#f59e0b',
+      color: '#92400e',
+      iconColor: '#f59e0b'
+    },
+    info: {
+      bg: 'linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%)',
+      border: '#a5f3fc',
+      borderLeft: '#06b6d4',
+      color: '#0c4a6e',
+      iconColor: '#06b6d4'
+    }
+  }
+  
+  const config = colorConfig[tipo] || colorConfig.info
+  
+  // Posición fija directa en el toast
   toast.style.cssText = `
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-primary);
-        border-left: 4px solid var(--accent-${tipo === "success" ? "green" : tipo === "error" ? "red" : tipo === "warning" ? "orange" : "blue"});
-        color: var(--text-primary);
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        background: ${config.bg};
+        border: 1px solid ${config.border};
+        border-left: 4px solid ${config.borderLeft};
+        color: ${config.color};
         padding: 16px 20px;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-lg);
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         min-width: 300px;
         max-width: 400px;
         transform: translateX(100%);
-        transition: all var(--transition-normal);
+        transition: all 0.3s ease;
         display: flex;
         align-items: center;
         gap: 12px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        line-height: 1.5;
     `
 
   const icon =
@@ -181,14 +268,15 @@ function mostrarToast(mensaje, tipo = "info", duracion = 3000) {
           : "info-circle"
 
   toast.innerHTML = `
-        <i class="fas fa-${icon}" style="color: var(--accent-${tipo === "success" ? "green" : tipo === "error" ? "red" : tipo === "warning" ? "orange" : "blue"});"></i>
-        <span style="flex: 1;">${mensaje}</span>
-        <button onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+        <i class="fas fa-${icon}" style="color: ${config.iconColor}; flex-shrink: 0;"></i>
+        <span style="flex: 1; color: ${config.color};">${mensaje}</span>
+        <button onclick="this.parentElement.remove()" style="background: none; border: none; color: ${config.color}; cursor: pointer; padding: 4px; opacity: 0.7; border-radius: 4px;">
             <i class="fas fa-times"></i>
         </button>
     `
 
-  container.appendChild(toast)
+  // Añadir directamente al body
+  document.body.appendChild(toast)
 
   // Animar entrada
   setTimeout(() => {
@@ -199,7 +287,7 @@ function mostrarToast(mensaje, tipo = "info", duracion = 3000) {
   setTimeout(() => {
     toast.style.transform = "translateX(100%)"
     setTimeout(() => {
-      if (toast.parentElement) {
+      if (toast.parentNode) {
         toast.remove()
       }
     }, 300)

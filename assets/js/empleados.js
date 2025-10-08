@@ -26,7 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.abrirModalEmpleado = function(empleadoId = null) {
         if (!modal) return;
+        
+        // Añadir clase show para animación
         modal.style.display = 'flex'; 
+        setTimeout(() => modal.classList.add('show'), 10);
+        
+        // Prevenir scroll del body SOLO cuando el modal está abierto
+        document.body.classList.add('modal-open');
         
         if (empleadoId) {
             document.getElementById('modal-titulo').textContent = 'Editar Empleado';
@@ -49,11 +55,17 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => inicializarModalEmpleado(), 100);
         }
     };
-
+    
     window.cerrarModalEmpleado = function() {
-        if (modal) {
+        if (!modal) return;
+        
+        // Animación de salida
+        modal.classList.remove('show');
+        setTimeout(() => {
             modal.style.display = 'none';
-        }
+            // Restaurar scroll del body (solo por si acaso)
+            document.body.classList.remove('modal-open');
+        }, 250);
     };
     
     // ... [Funciones verEmpleado, editarEmpleado, eliminarEmpleado, exportarEmpleados se mantienen iguales] ...
@@ -66,7 +78,99 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
+    
+    // ===============================================
+    // FUNCIONALIDAD DE BÚSQUEDA Y FILTROS
+    // ===============================================
+    
+    // Búsqueda en tiempo real
+    const searchInput = document.getElementById('buscar-empleado');
+    const departmentFilter = document.getElementById('filtro-departamento');
+    
+    function filtrarEmpleados() {
+        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+        const selectedDepartment = departmentFilter ? departmentFilter.value.toLowerCase() : '';
+        const employeeCards = document.querySelectorAll('.employee-card-unified');
+        
+        employeeCards.forEach(card => {
+            const name = card.querySelector('.employee-name-inline')?.textContent.toLowerCase() || '';
+            const position = card.querySelector('.employee-position-inline')?.textContent.toLowerCase() || '';
+            const cedula = card.querySelector('.field-value')?.textContent.toLowerCase() || '';
+            const department = card.querySelector('.employee-field .field-value')?.textContent.toLowerCase() || '';
+            
+            const matchesSearch = !searchTerm || 
+                name.includes(searchTerm) || 
+                position.includes(searchTerm) || 
+                cedula.includes(searchTerm);
+                
+            const matchesDepartment = !selectedDepartment || department.includes(selectedDepartment);
+            
+            if (matchesSearch && matchesDepartment) {
+                card.style.display = '';
+                card.style.animation = 'fadeIn 0.3s ease-in-out';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Actualizar contador de resultados
+        const visibleCards = document.querySelectorAll('.employee-card-unified[style=""], .employee-card-unified:not([style*="display: none"])');
+        const totalSpan = document.querySelector('.stat-number');
+        if (totalSpan) {
+            totalSpan.textContent = visibleCards.length;
+        }
+    }
+    
+    // Event listeners para filtros
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrarEmpleados);
+    }
+    
+    if (departmentFilter) {
+        departmentFilter.addEventListener('change', filtrarEmpleados);
+    }
+    
+    // ===============================================
+    // MEJORAS DE UX
+    // ===============================================
+    
+    // Truncar texto largo y añadir tooltips
+    function initializeTooltips() {
+        document.querySelectorAll('.field-value').forEach(element => {
+            if (element.scrollWidth > element.clientWidth) {
+                element.setAttribute('title', element.textContent);
+            }
+        });
+    }
+    
+    // Animación de hover para las tarjetas
+    document.querySelectorAll('.employee-card-unified').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Inicializar tooltips
+    initializeTooltips();
+    
+    // Reinicializar tooltips después de filtrar
+    const originalFilter = filtrarEmpleados;
+    filtrarEmpleados = function() {
+        originalFilter();
+        setTimeout(initializeTooltips, 100);
+    };
+    
+    // Cerrar modal con ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+            cerrarModalEmpleado();
+        }
+    });
+    
     // Manejar envío del formulario: dejar que el formulario haga POST al servidor
     // excepto cuando la validación falla.
     if (form) {

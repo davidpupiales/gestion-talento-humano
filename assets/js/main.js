@@ -316,23 +316,81 @@ const Utils = {
   },
 }
 
-// Función para mostrar toast
+// Función para mostrar toast simple - SIN contenedores adicionales
 function mostrarToast(mensaje, tipo) {
   const toast = document.createElement("div")
   toast.className = `toast ${tipo}`
+  
+  // Definir colores según el tipo
+  const colorConfig = {
+    success: {
+      bg: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+      color: '#065f46',
+      borderLeft: '#10b981'
+    },
+    error: {
+      bg: 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)',
+      color: '#7f1d1d',
+      borderLeft: '#ef4444'
+    },
+    warning: {
+      bg: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+      color: '#92400e',
+      borderLeft: '#f59e0b'
+    },
+    info: {
+      bg: 'linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%)',
+      color: '#0c4a6e',
+      borderLeft: '#06b6d4'
+    }
+  }
+  
+  const config = colorConfig[tipo] || colorConfig.info
+  
+  // Estilos simples y directos
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${config.bg};
+    color: ${config.color};
+    border-left: 4px solid ${config.borderLeft};
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    font-weight: 500;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    z-index: 9999;
+    max-width: 350px;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  `
+  
   toast.textContent = mensaje
   document.body.appendChild(toast)
 
+  // Animar entrada
   setTimeout(() => {
-    toast.remove()
+    toast.style.transform = "translateX(0)"
+  }, 10)
+
+  // Auto-eliminar después de 3 segundos
+  setTimeout(() => {
+    toast.style.transform = "translateX(100%)"
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.remove()
+      }
+    }, 300)
   }, 3000)
 }
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener("DOMContentLoaded", () => {
-  HRMS.init()
+  // HRMS.init() // Deshabilitado - usar sistema estático de notificaciones en header_scripts.js
 })
 
-// Exportar para uso global
-window.HRMS = HRMS
+// Exportar solo las funciones necesarias
+window.mostrarToast = mostrarToast
 window.Utils = Utils
